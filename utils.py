@@ -20,34 +20,47 @@ TagRetweet = 0x4
 TagFavorited = 0x8
 TagRead = 0x10
 
-def getTermLength(ss):
-    '''return the length of a string in the terminal.
-    ss: unicode string
-    ex. getLength(u'我') = 2
-    '''
-    s = ss.encode('utf-8')
-    return len(ss) + (len(s) - len(ss))/2
-    #count = 0
-    #for c in s:
-    #    if ord(c) > 127:
-    #        count += 1
-    #return len(s) - count/3
-
 def split(ss, length):
     '''split a long string to short strings
-    ss: unicode string
+    ss: unicode string, ex. '\u5555\u6666'
     '''
-    res = []
-    while ss:
-        if getTermLength(ss) <= length:
-            res.append(ss)
-            break
-        for i in xrange(1, len(ss)):
-            if getTermLength(ss[:i]) > length:
-                res.append(ss[:i-1])
-                ss = ss[i-1:]
-                break
-    return res
+    ss = ss.replace('\r\n',' ').replace('\n',' ').replace('\r',' ')
+    tmp = 0
+    for i in xrange(len(ss)):
+        if ord(ss[i]) < 128:
+            tmp += 1
+        else:
+            tmp += 2
+        if tmp == length:
+            return ss[:i+1]
+        elif length - tmp < 2:
+            if i+1 < len(ss) and ord(ss[i+1]) < 128:
+                return ss[:i+2]
+            else:
+                return ss[:i+1]
+    return ss
+    #res = []
+    #tmp = 0
+    #while ss:
+    #    for i in xrange(len(ss)):
+    #        if ord(ss[i]) < 128:
+    #            tmp += 1
+    #        else:
+    #            tmp += 2
+    #        if tmp == length:
+    #            res.append(ss[:i+1])
+    #            ss = ss[i+1:]
+    #            tmp = 0
+    #            break
+    #        elif length - tmp < 2:
+    #            if i+1 < len(ss) and ord(ss[i+1]) < 128:
+    #                pass
+    #            else:
+    #                res.append(ss[:i+1])
+    #                ss = ss[i+1:]
+    #                tmp = 0
+    #                break
+    #return res
 
 def getTableNames(tuser):
     return 'x%d'%tuser, 'd%d'%tuser

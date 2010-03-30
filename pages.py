@@ -460,7 +460,7 @@ class tweetListPage:
         #TODO 汉字在终端上占2位, format计算时会算成三位(unicode编码长度)
         head = '\x1b[33;44m@{0:<14}{1:^50}{2:>15}\r\n'.format(self.tuser[1], self.title, 'tterm')\
                 + '\x1b[0m\x1b[32m{0:^92}\r\n'.format('发推[p] 回复[r] 发信[m] 标记[f] 搜索[/] 求助[h]')\
-                + '\x1b[33;44m     {0:<17} {1:<61}\r\n'.format('作者', '状态')
+                + '\x1b[33;44m    {0:<17} {1:<62}\r\n'.format('作者', '状态')
         self.terminal.cursorHome()
         self.terminal.write(head)
         foot = '\x1b[33;44m{0:80}\x1b[0m'.format(\
@@ -484,16 +484,15 @@ class tweetListPage:
         #TODO 汉字在终端上占2位, format计算时会算成三位(unicode编码长度)
         self.templist = self.tweets[20*self.pagecursor:20*self.pagecursor+20]
 
+        #tweet[5].encode('utf-8').replace('\r',' ').replace('\n',' ')[:72]
         if self.isDM:
-            content = '\r\n'.join(['\x1b[0m * ★ {0:<15} \x1b[37m{1:<61}'.format(\
+            content = '\r\n'.join(['\x1b[0m *★ {0:<15} \x1b[37m{1}'.format(\
                     tweet[8].encode('utf-8'),
-                    tweet[5].encode('utf-8').replace('\r',' ').replace('\n',' ')[:72])\
-                            for tweet in self.templist])
+                    utils.split(tweet[5], 60).encode('utf-8')) for tweet in self.templist])
         else:
-            content = '\r\n'.join(['\x1b[0m * ★ {0:<15} \x1b[37m{1:<61}'.format(\
+            content = '\r\n'.join(['\x1b[0m *★ {0:<15} \x1b[37m{1}'.format(\
                     tweet[10].encode('utf-8'),
-                    tweet[5].encode('utf-8').replace('\r',' ').replace('\n',' ')[:72])\
-                            for tweet in self.templist])
+                    utils.split(tweet[5], 60).encode('utf-8')) for tweet in self.templist])
         return content
 
     def callback(self, *args):

@@ -95,13 +95,6 @@ class TtermProtocol(insults.TerminalProtocol):
 
         self.curpage = pages.mainListPage(self.apis, self.user, tusers, self.dbcursor, self.terminal)
 
-        #self.terminal.eraseDisplay()
-        #self.terminal.cursorHome()
-        #self.terminal.write(pages.getStatusListPageStr(self.user, 'Home', self.getHomeTimeline()))
-        #utils.setCursorPosition(self.terminal, 0, 3)
-        #self.terminal.write(self.cursor)
-        #self.terminal.cursorBackward()
-
     def connectionLost(self, reason):
         '''called when connection lost'''
         # stop updater
