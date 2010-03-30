@@ -96,10 +96,10 @@ class PasswordDBChecker:
 
         try:
             conn = sqlite.connect(self.dbname)
-            conn.isolation_level = None
             cursor = conn.cursor()
             cursor.execute('select name,pass from sysusers where name=?', (username,))
             up = cursor.fetchone()
+            conn.close()
             print up
             if not up:
                 raise KeyError(username)
@@ -120,10 +120,7 @@ class PasswordDBChecker:
         except KeyError:
             return defer.fail(error.UnauthorizedLogin())
         else:
-            print '++++++++before'
             up = credentials.IUsernamePassword(c, None)
-            print '++++++++after'
-            print up
             if self.hash:
                 if up is not None:
                     h = self.hash(up.username, up.password, p)

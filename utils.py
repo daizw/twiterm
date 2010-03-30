@@ -20,9 +20,6 @@ TagRetweet = 0x4
 TagFavorited = 0x8
 TagRead = 0x10
 
-conn = sqlite.connect('data.db')
-conn.isolation_level = None
-
 def getTermLength(ss):
     '''return the length of a string in the terminal.
     ss: unicode string
@@ -107,12 +104,11 @@ def getTwitterApi(key, secret):
     # Construct the API instance
     return tweepy.API(auth)
 
-def saveTwitterUser(user):
+def saveTwitterUser(dbcursor, user):
     '''insert a twitter user into DB
     @param user: a dict containing user info
     '''
     try:
-        dbcursor = conn.cursor()
         dbcursor.execute("insert into twitterusers values(?,?,?,?,?,?,?,?)",
                 (user['id'],
                     user['name'],
@@ -146,6 +142,7 @@ def saveTwitterUser(user):
                         user['url'],
                         None,
                         user['id']))
+
         except:
             traceback.print_exc(file=sys.stdout)
 
@@ -156,6 +153,7 @@ def updateHomeTimeline(uid, api):
     # process the result
     # write it into DB
     #TODO select max(id) from...
+    conn = sqlite.connect('data.db')
     dbcursor = conn.cursor()
     dbcursor.execute("select id, tag from %s order by id desc" % ('x%d'%uid))
     resp = ''
@@ -177,7 +175,7 @@ def updateHomeTimeline(uid, api):
     print timeline
     for s in timeline:
         try:
-            saveTwitterUser(s['user'])
+            saveTwitterUser(dbcursor, s['user'])
             tag = TagHome
             if(s['favorited']):
                 tag = tag | TagFavorited
@@ -201,9 +199,12 @@ def updateHomeTimeline(uid, api):
                             None))
         except:
             traceback.print_exc(file=sys.stdout)
+    conn.commit()
+    conn.close()
 
 def updateMentions(uid, api):
     '''update mentions, and write them into DB'''
+    conn = sqlite.connect('data.db')
     dbcursor = conn.cursor()
     dbcursor.execute("select id, tag from %s order by id desc" % ('x%d'%uid))
     resp = ''
@@ -221,9 +222,10 @@ def updateMentions(uid, api):
             resp = api.mentions(count = 200)
             break
     timeline = json.loads(resp)
+    print '\x1b[31m!!!=== length of mentions: %d\x1b[0m' % len(timeline) 
     for s in timeline:
         try:
-            saveTwitterUser(s['user'])
+            saveTwitterUser(dbcursor, s['user'])
             tag = TagMentions
             if(s['favorited']):
                 tag = tag | TagFavorited
@@ -246,9 +248,12 @@ def updateMentions(uid, api):
                         None))
         except:
             traceback.print_exc(file=sys.stdout)
+    conn.commit()
+    conn.close()
 
 def updateDirectMessages(uid, api):
     '''update direct_messages, and write them into DB'''
+    conn = sqlite.connect('data.db')
     dbcursor = conn.cursor()
     dbcursor.execute("select id from %s where toid=? order by id desc" % ('d%d'%uid),
             (uid,))
@@ -262,8 +267,8 @@ def updateDirectMessages(uid, api):
     timeline = json.loads(resp)
     for s in timeline:
         try:
-            saveTwitterUser(s['sender'])
-            saveTwitterUser(s['recipient'])
+            saveTwitterUser(dbcursor, s['sender'])
+            saveTwitterUser(dbcursor, s['recipient'])
             dbcursor.execute('insert into %s values(?,?,?,?,?,?)' % ('d%d'%uid),
                     (s['id'],
                     0,# tag: read
@@ -273,9 +278,12 @@ def updateDirectMessages(uid, api):
                     s['text']))
         except:
             traceback.print_exc(file=sys.stdout)
+    conn.commit()
+    conn.close()
 
 def updateSentDirectMessages(uid, api):
     '''update sent_direct_messages, and write them into DB'''
+    conn = sqlite.connect('data.db')
     dbcursor = conn.cursor()
     dbcursor.execute("select id from %s where fromid=? order by id desc" % ('d%d'%uid),
             (uid,))
@@ -289,8 +297,8 @@ def updateSentDirectMessages(uid, api):
     timeline = json.loads(resp)
     for s in timeline:
         try:
-            saveTwitterUser(s['sender'])
-            saveTwitterUser(s['recipient'])
+            saveTwitterUser(dbcursor, s['sender'])
+            saveTwitterUser(dbcursor, s['recipient'])
             dbcursor.execute('insert into %s values(?,?,?,?,?,?)' % ('d%d'%uid),
                     (s['id'],
                     0,# tag: read
@@ -300,3 +308,5 @@ def updateSentDirectMessages(uid, api):
                     s['text']))
         except:
             traceback.print_exc(file=sys.stdout)
+    conn.commit()
+    conn.close()

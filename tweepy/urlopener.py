@@ -27,7 +27,6 @@ class UrlOpener:
         self.opener = urllib2.build_opener(self.http_proxy_handler,
                 self.https_proxy_handler,
                 self.authinfo,
-                urllib2.CacheFTPHandler,
                 urllib2.HTTPCookieProcessor(self.cookies))
 
     def doGet(self, url, headers):

@@ -5,6 +5,8 @@ import sys, traceback
 import string
 import time, calendar
 
+from twisted.conch.insults import insults
+
 import tweepy
 import simplejson as json
 
@@ -188,14 +190,11 @@ class bindingPage:
         try:
             # Get access token
             token = self.tempauth.get_access_token(PIN)
-            print '=== access token key:', token.key
-            print '=== access token secret:', token.secret
             api = tweepy.API(self.tempauth)
             profile = api.verify_credentials()
             profile = json.loads(profile)
             utils.saveTwitterUser(profile)
             id = profile['id']
-            print '===binding:', id, profile['screen_name']
             # already exist?
             self.dbcursor.execute('select owner from bindings where id=?',
                     (id,))
@@ -482,7 +481,6 @@ class tweetListPage:
     def getTweetListPageStr(self):
         '''return result page string for terminal to display
         '''
-        print '===+++=== enter tweet list page renderor'
         #TODO 汉字在终端上占2位, format计算时会算成三位(unicode编码长度)
         self.templist = self.tweets[20*self.pagecursor:20*self.pagecursor+20]
 
@@ -529,7 +527,6 @@ class tweetListPage:
         elif keyID == self.terminal.LEFT_ARROW or keyID == '\x1b[OD':
             self.pcallback()
         elif keyID == self.terminal.RIGHT_ARROW or keyID == '\x1b[OC' or keyID == '\r':
-            print '===', self.terminal.cursorPos
             i = self.terminal.cursorPos.y
             if i >= 3 and i <= len(self.templist)+2:
                 self.cursorX = self.terminal.cursorPos.x
@@ -646,7 +643,12 @@ class tweetPage:
             self.cursorX = self.terminal.cursorPos.x
             self.cursorY = self.terminal.cursorPos.y
             tweet = self.tweets[self.tweetcursor]
-            self.curpage = postPage(self.api, self.terminal, self.callback, tweet)
+            self.curpage = postPage(self.api, self.terminal, self.callback, tweet, type=1)
+        elif keyID == 'c':
+            self.cursorX = self.terminal.cursorPos.x
+            self.cursorY = self.terminal.cursorPos.y
+            tweet = self.tweets[self.tweetcursor]
+            self.curpage = postPage(self.api, self.terminal, self.callback, tweet, type=2)
         #TODO r:回复 m:dm作者 t:官方ReTweet f:favorite c:附评论RT
 
 #========================================================
@@ -717,18 +719,24 @@ class dmPage:
             self.cursorX = self.terminal.cursorPos.x
             self.cursorY = self.terminal.cursorPos.y
             tweet = self.tweets[self.tweetcursor]
-            self.curpage = postPage(self.api, self.terminal, self.callback, tweet, isDM = True)
+            self.curpage = postPage(self.api, self.terminal, self.callback, tweet, type=3)
         #TODO r:回复 m:dm作者 t:官方ReTweet f:favorite c:附评论RT
 
 #========================================================
 class postPage:
     '''tweet page'''
-    def __init__(self, api, terminal, pcallback, tweet=None, isDM = False):
+    def __init__(self, api, terminal, pcallback, tweet=None, type=0):
+        '''@ivar param type: 
+        0: normal post;
+        1: reply;
+        2: RT;
+        3: direct message
+        '''
         self.api = api
         self.terminal = terminal
         self.pcallback = pcallback
         self.tweet = tweet
-        self.isDM = isDM
+        self.type = type
 
         self.cursorX, self.cursorY = 0, 0
 
@@ -740,14 +748,16 @@ class postPage:
         self.count = 0
 
         self.show()
-        if self.tweet:
-            if self.isDM:
-                ts = 'dm %s ' % tweet[8].encode('utf-8')
-            else:
-                ts = '@%s ' % tweet[10].encode('utf-8')
-            for c in ts:
-                self.buffer.append(c)
-            self.terminal.write(ts)
+        ts = ''
+        if self.type == 1:
+            ts = '@%s ' % tweet[10].encode('utf-8')
+        elif self.type == 2:
+            ts = 'RT @%s: %s' % (tweet[10].encode('utf-8'), tweet[5].encode('utf-8'))
+        elif self.type == 3:
+            ts = 'dm %s ' % tweet[8].encode('utf-8')
+        for c in ts:
+            self.buffer.append(c)
+        self.terminal.write(ts)
 
     def show(self):
         '''show the tweet'''
@@ -772,7 +782,7 @@ class postPage:
                 self.terminal.write(' posting...')
                 st = ''.join(self.buffer).strip()
                 if st:
-                    if self.tweet: # and not self.isDM:
+                    if self.type == 1:
                         self.api.update_status(status = st,
                                 in_reply_to_status_id = str(self.tweet[0]))
                     else:
@@ -808,6 +818,8 @@ class postPage:
                     self.terminal.cursorBackward()
         elif keyID == '\x1b' and modifier == self.terminal.ALT:
             self.pcallback()
+        elif keyID in insults.FUNCTION_KEYS:
+            pass
         else:
             self.buffer.append(keyID)
             self.count += 1

@@ -31,10 +31,6 @@ class _Glue:
 
 class TerminalSessionTransport:
     def __init__(self, proto, chainedProtocol, avatar, width, height):
-        print '===', avatar
-        print '===str', str(avatar)
-        print '===repr', repr(avatar)
-        print '===dir', dir(avatar)
         self.proto = proto
         self.avatar = avatar
         self.chainedProtocol = chainedProtocol
@@ -80,6 +76,18 @@ class TerminalSession(components.Adapter):
 
     def execCommand(self, proto, cmd):
         raise econch.ConchError("Cannot execute commands")
+
+    def windowChanged(self, newWindowSize):
+        """
+        Called when the size of the remote screen has changed.
+        """
+        pass
+
+    def eofReceived(self):
+        """
+        Called when the other side has indicated no more data will be sent.
+        """
+        pass
 
     def closed(self):
         pass

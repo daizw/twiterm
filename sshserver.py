@@ -12,7 +12,8 @@ import sqlite3 as sqlite
 from twisted.python import log
 from twisted.conch.insults import insults
 from twisted.conch.telnet import TelnetTransport, TelnetBootstrapProtocol
-from twisted.internet import protocol, defer, task
+from twisted.internet import threads
+from twisted.internet import protocol, defer, task, reactor
 from twisted.application import internet, service
 from twisted.cred import checkers, portal
 
@@ -21,6 +22,8 @@ import pages
 import utils
 import consts
 from manhole_ssh import ConchFactory, TerminalRealm
+
+#reactor.suggestThreadPoolSize(20) # 线程池大小
 
 # to remember the
 # connection number of one user
@@ -86,7 +89,7 @@ class TtermProtocol(insults.TerminalProtocol):
             if b[0] not in updaters:
                 #TODO bring up a loopingcall
                 # and store it in the updaters
-                self.runUpdater(b[0], api, 120)
+                threads.deferToThread(self.runUpdater, b[0], api, 60)
 
         tusers = [(b[0],b[7]) for b in self.bindings]
 
@@ -106,6 +109,7 @@ class TtermProtocol(insults.TerminalProtocol):
         connnum = self.updateConnectionNum(False)
         if connnum <= 0:
             self.stopUpdaters()
+        self.dbconn.close()
 
     def updateConnectionNum(self, bIncrease = True):
         '''increase or decrease connection number
@@ -121,14 +125,14 @@ class TtermProtocol(insults.TerminalProtocol):
             userstate[self.user] = 1
         return userstate[self.user]
 
-    def runUpdater(self, tun, api, interval=12):
+    def runUpdater(self, tuid, api, interval=12):
         '''called when connection made
-        @param tun: twitter username
+        @param tuid: twitter user id
         '''
-        ud = task.LoopingCall(self._iterate, tun, api, interval)
+        ud = task.LoopingCall(self._iterate, tuid, api, interval)
         ud.start(interval)
         global updaters
-        updaters[tun] = ud
+        updaters[tuid] = ud
     
     def stopUpdaters(self):
         '''called when the last connection lost'''
@@ -138,13 +142,17 @@ class TtermProtocol(insults.TerminalProtocol):
                 updaters[n].stop()
                 del updaters[n]
 
-    def _iterate(self, tun, api, interval=12):
-        '''@param tun: twitter username'''
-        utils.updateHomeTimeline(tun, api)
-        #TODO 阻塞问题; dm不需要更新这么频繁吧...
-        utils.updateMentions(tun, api)
-        utils.updateDirectMessages(tun, api)
-        utils.updateSentDirectMessages(tun, api)
+    def _iterate(self, tuid, api, interval=12):
+        '''@param tuid: twitter user id'''
+        threads.deferToThread(utils.updateHomeTimeline, tuid, api)
+        threads.deferToThread(utils.updateMentions, tuid, api)
+        threads.deferToThread(utils.updateDirectMessages, tuid, api)
+        threads.deferToThread(utils.updateSentDirectMessages, tuid, api)
+        #utils.updateHomeTimeline(tuid, api)
+        ##TODO 阻塞问题; dm不需要更新这么频繁吧...
+        #utils.updateMentions(tuid, api)
+        #utils.updateDirectMessages(tuid, api)
+        #utils.updateSentDirectMessages(tuid, api)
 
     # ITerminalListener
     def terminalSize(self, width, height):
