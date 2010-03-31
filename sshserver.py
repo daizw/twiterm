@@ -60,7 +60,7 @@ class TtermProtocol(insults.TerminalProtocol):
         # bring up a updater for every binding if this is the first connection
         connnum = self.updateConnectionNum(True)
 
-        self.dbconn = sqlite.connect("data.db")
+        self.dbconn = sqlite.connect("data.db",10)
         self.dbconn.isolation_level = None
         self.dbcursor = self.dbconn.cursor()
 

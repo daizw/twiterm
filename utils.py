@@ -24,7 +24,7 @@ def split(ss, length):
     '''split a long string to short strings
     ss: unicode string, ex. '\u5555\u6666'
     '''
-    ss = ss.replace('\r\n',' ').replace('\n',' ').replace('\r',' ')
+    ss = ss.replace('\r\n',' ').replace('\n',' ').replace('\r',' ').replace('\t',' ').replace('\x0b',' ')
     tmp = 0
     for i in xrange(len(ss)):
         if ord(ss[i]) < 128:
@@ -164,7 +164,7 @@ def updateHomeTimeline(uid, api):
     # process the result
     # write it into DB
     #TODO select max(id) from...
-    conn = sqlite.connect('data.db')
+    conn = sqlite.connect('data.db',10)
     dbcursor = conn.cursor()
     dbcursor.execute("select id, tag from %s order by id desc" % ('x%d'%uid))
     resp = ''
@@ -213,7 +213,7 @@ def updateHomeTimeline(uid, api):
 
 def updateMentions(uid, api):
     '''update mentions, and write them into DB'''
-    conn = sqlite.connect('data.db')
+    conn = sqlite.connect('data.db',10)
     dbcursor = conn.cursor()
     dbcursor.execute("select id, tag from %s order by id desc" % ('x%d'%uid))
     resp = ''
@@ -262,7 +262,7 @@ def updateMentions(uid, api):
 
 def updateDirectMessages(uid, api):
     '''update direct_messages, and write them into DB'''
-    conn = sqlite.connect('data.db')
+    conn = sqlite.connect('data.db',10)
     dbcursor = conn.cursor()
     dbcursor.execute("select id from %s where toid=? order by id desc" % ('d%d'%uid),
             (uid,))
@@ -292,7 +292,7 @@ def updateDirectMessages(uid, api):
 
 def updateSentDirectMessages(uid, api):
     '''update sent_direct_messages, and write them into DB'''
-    conn = sqlite.connect('data.db')
+    conn = sqlite.connect('data.db',10)
     dbcursor = conn.cursor()
     dbcursor.execute("select id from %s where fromid=? order by id desc" % ('d%d'%uid),
             (uid,))

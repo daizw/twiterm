@@ -95,7 +95,7 @@ class PasswordDBChecker:
             username = username.lower()
 
         try:
-            conn = sqlite.connect(self.dbname)
+            conn = sqlite.connect(self.dbname,10)
             cursor = conn.cursor()
             cursor.execute('select name,pass from sysusers where name=?', (username,))
             up = cursor.fetchone()
