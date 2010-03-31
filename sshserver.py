@@ -166,7 +166,7 @@ class TtermProtocol(insults.TerminalProtocol):
             log.msg("Client sent something weird: %r" % (seq,))
 
     def keystrokeReceived(self, keyID, modifier):
-        print '=== keystrokeReceived()', repr(keyID), repr(modifier)
+        #print '=== keystrokeReceived()', repr(keyID), repr(modifier)
         #Ctrl+C
         if keyID == '\x03':
             self.terminal.loseConnection()

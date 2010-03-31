@@ -193,7 +193,7 @@ class bindingPage:
             api = tweepy.API(self.tempauth)
             profile = api.verify_credentials()
             profile = json.loads(profile)
-            utils.saveTwitterUser(profile)
+            utils.saveTwitterUser(self.dbcursor, profile)
             id = profile['id']
             # already exist?
             self.dbcursor.execute('select owner from bindings where id=?',
