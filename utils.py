@@ -137,8 +137,7 @@ def saveTwitterUser(dbcursor, user):
             #UPDATE Person SET Address = 'Zhongshan 23', City = 'Nanjing'
             #WHERE LastName = 'Wilson'
             #DELETE FROM Person WHERE LastName = 'Wilson' 
-            dbcursor.execute("update twitterusers set id = ?,\
-                    name = ?,\
+            dbcursor.execute("update twitterusers set name = ?,\
                     screenname = ?,\
                     location = ?,\
                     description = ?,\
@@ -146,8 +145,7 @@ def saveTwitterUser(dbcursor, user):
                     url = ?,\
                     other = ? \
                     where id = ?",
-                    (user['id'],
-                        user['name'],
+                    (user['name'],
                         user['screen_name'],
                         user['location'],
                         user['description'],
@@ -184,8 +182,7 @@ def updateHomeTimeline(uid, api):
             resp = api.home_timeline(count = 200)
             break
     timeline = json.loads(resp)
-    print '====================================='
-    print timeline
+    print '\x1b[31m!!!=== length of home timeline: %d\x1b[0m' % len(timeline) 
     for s in timeline:
         try:
             saveTwitterUser(dbcursor, s['user'])
@@ -193,13 +190,12 @@ def updateHomeTimeline(uid, api):
             if(s['favorited']):
                 tag = tag | TagFavorited
             # 如果tweet原来存在于表中, 取tag按位或, 并且应该使用update, 而不是insert
-            print '===! inserting', s['id']
             dbcursor.execute('select tag from %s where id = ?' % ('x%d'%uid),
                     (s['id'],))
             oldtag = dbcursor.fetchone()
             if oldtag:
-                dbcursor.execute('update %s set tag = ?' % ('x%d'%uid),
-                        (oldtag[0] | tag,))
+                dbcursor.execute('update %s set tag = ? where id = ?' % ('x%d'%uid),
+                        (oldtag[0] | tag, s['id']))
             else:
                 dbcursor.execute('insert into %s values(?,?,?,?,?,?,?,?)' % ('x%d'%uid),
                         (s['id'],
@@ -247,8 +243,8 @@ def updateMentions(uid, api):
                     (s['id'],))
             oldtag = dbcursor.fetchone()
             if oldtag:
-                dbcursor.execute('update %s set tag = ?' % ('x%d'%uid),
-                        (oldtag[0] | tag,))
+                dbcursor.execute('update %s set tag = ? where id = ?' % ('x%d'%uid),
+                        (oldtag[0] | tag, s['id']))
             else:
                 dbcursor.execute('insert into %s values(?,?,?,?,?,?,?,?)' % ('x%d'%uid),
                         (s['id'],

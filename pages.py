@@ -291,12 +291,12 @@ class mainListPage:
         self.terminal.eraseDisplay()
         self.terminal.cursorHome()
         for i in xrange(len(self.tusers)):
-            self.terminal.write('''\x1b[37m    ● (%d)%s\r\n''' % (i+1, self.tusers[i][1].encode('utf-8')))
+            self.terminal.write('''\x1b[33m    ● (%d)%s\x1b[0m\r\n''' % (i+1, self.tusers[i][1].encode('utf-8')))
         self.terminal.write('''\
-    ● (N)New binding
+    \x1b[32m● (N)New binding\x1b[0m
     ● (H)Help
     ● (A)About
-    ● (B)Goodbye!''')
+    \x1b[31m● (B)Goodbye!\x1b[0m''')
 
     def callback(self, *args):
         '''called by sub-pages'''
@@ -602,9 +602,19 @@ class tweetPage:
         content = '\x1b[37m\r\n{0}\r\n'.format(tweet[5].encode('utf-8'))
 
         if tweet[6]:
-            #TODO 可以根据消息文本开始处的用户名自己生成一个链接:
-            #http://twitter.com/daizw/status/9633364542
-            content += '\r\n\x1b[32m[In Reply To] %d\r\n' % tweet[6]
+            found = False
+            for t in self.tweets:
+                if tweet[6] == t[0]:
+                    content += '\x1b[34m\r\n【@%s 说:】\r\n\x1b[32m%s\r\n' % (\
+                            t[10].encode('utf-8'), t[5].encode('utf-8'))
+                    found = True
+                    break
+            if not found:
+                #TODO 可以根据消息文本开始处的用户名自己生成一个链接:
+                #http://twitter.com/daizw/status/9633364542
+                content += '\x1b[34m\r\n【In Reply To】\r\n\x1b[32m http://twitter.com/%s/status/%d\r\n' % (\
+                        tweet[5].split()[0][1:].encode('utf-8'),
+                        tweet[6])
         
         foot = '\x1b[33m\r\n------\r\n ◆ {0:<6}: {1:<70}\x1b[0m'.format('位置',\
                 'tterm(http://code.google.com/p/twiterm/)')
