@@ -93,6 +93,7 @@ class registerPage:
 
         if self.loseConn:
             self.terminal.loseConnection()
+            return
 
         #TODO 长度限制
         # username
@@ -253,6 +254,7 @@ class bindingPage:
 
         if self.loseConn:
             self.terminal.loseConnection()
+            return
 
         if keyID in string.digits:
             self.terminal.write(keyID)
@@ -332,6 +334,7 @@ class mainListPage:
                 self.curpage = bindingPage(self.user, self.dbcursor, self.terminal)
             elif i == len(self.tusers) + 3:
                 self.terminal.loseConnection()
+                return
             else:
                 #TODO the other options
                 pass
