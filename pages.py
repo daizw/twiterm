@@ -592,7 +592,7 @@ class tweetListPage:
             self.cursorX = self.terminal.cursorPos.x
             self.cursorY = self.terminal.cursorPos.y
             self.curpage = postPage(self.api, self.terminal, self.callback)
-        elif keyID == 'f':#favorise
+        elif keyID == 'g':#favorise
             i = self.terminal.cursorPos.y
             if i >= 3 and i <= len(self.templist)+2:
                 tweet = list(self.tweets[self.pagecursor*20+(i-3)])
@@ -607,7 +607,7 @@ class tweetListPage:
                     #self.api.destroy_favorite(tweet[0])
                     self.terminal.write('   ')
                     utils.drawCursorAt(self.terminal, self.cursor, 0, i)
-        elif keyID == 'a':#mark all as read
+        elif keyID == 'f':#mark all as read
             for t in self.tweets:
                 if not (t[1] & utils.TagRead):
                     self.modtweets[t[0]] = (t[1] | utils.TagRead)
