@@ -87,10 +87,14 @@ def setCursorPosition(terminal, column, line):
 
 def drawCursorAt(terminal, cursor, x, y):
     '''move cursor to (x,y), and draw a cursor there'''
-    terminal.write(' ')
     setCursorPosition(terminal, x, y)
     terminal.write(cursor)
     terminal.cursorBackward()
+
+def moveCursorTo(terminal, cursor, x, y):
+    '''move cursor to (x,y), and draw a cursor there'''
+    terminal.write(' ')
+    drawCursorAt(terminal, cursor, x, y)
 
 def parseSource(s):
     '''convert source string

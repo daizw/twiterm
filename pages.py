@@ -78,7 +78,7 @@ class registerPage:
     def showPrompt_succeed(self):
         self.terminal.write('\r\n\r\n')
         self.terminal.write('Congratulations! You just signed up successfully!\r\n')
-        self.terminal.write('Now please disconnect and login again to enjoy tterm!\r\n')
+        self.terminal.write('Now please disconnect and login again to enjoy Tw!term!\r\n')
         self.showPrompt_relogin()
 
     def showPrompt_fail(self):
@@ -158,10 +158,11 @@ class bindingPage:
     6. 失败则绑定失败, 提示用户重连接来重试
     '''
 
-    def __init__(self, user, dbcursor, terminal):
+    def __init__(self, user, dbcursor, terminal, pcallback = None):
         self.user = user
         self.dbcursor = dbcursor
         self.terminal = terminal
+        self.pcallback = pcallback
         self.accept = False
         self.loseConn = False
         self.buffer = []
@@ -236,7 +237,7 @@ class bindingPage:
                 self.terminal.write('\r\n\r\n')
                 self.terminal.write('Congratulations!\r\n')
                 self.terminal.write('You just binded a twitter account to your account successfully.\r\n')
-                self.terminal.write('Now please disconnect and login again to enjoy tterm!\r\n')
+                self.terminal.write('Now please disconnect and login again to enjoy Tw!term!\r\n')
         except Exception, e:
             traceback.print_exc(file=sys.stdout)
             self.terminal.write('\r\n\r\n')
@@ -266,6 +267,8 @@ class bindingPage:
                 self.terminal.write(' ')
                 self.terminal.cursorBackward()
         elif keyID == '\r':
+            if self.pcallback and (not self.buffer):
+                self.pcallback()
             if len(self.buffer) == 7:
                 self.exchangeToken(''.join(self.buffer))
             else:
@@ -286,7 +289,7 @@ class mainListPage:
         self.cursorX, self.cursorY = 0, 0
         self.curpage = None
         self.show()
-        utils.drawCursorAt(self.terminal, self.cursor, 2, 0)
+        utils.moveCursorTo(self.terminal, self.cursor, 2, 0)
 
     def show(self):
         '''show the list'''
@@ -305,7 +308,7 @@ class mainListPage:
         del self.curpage
         self.curpage = None
         self.show()
-        utils.drawCursorAt(self.terminal, self.cursor, self.cursorX, self.cursorY)
+        utils.moveCursorTo(self.terminal, self.cursor, self.cursorX, self.cursorY)
 
     def keystrokeReceived(self, keyID, modifier):
         '''处理键盘事件'''
@@ -320,7 +323,7 @@ class mainListPage:
             if self.terminal.cursorPos.y < len(self.tusers) + 3:
                 utils.cursorDown(self.terminal, self.cursor)
         elif keyID == self.terminal.LEFT_ARROW or keyID == '\x1b[OD':
-            utils.drawCursorAt(self.terminal, self.cursor, 2, len(self.tusers)+3)
+            utils.moveCursorTo(self.terminal, self.cursor, 2, len(self.tusers)+3)
         elif keyID == self.terminal.RIGHT_ARROW or keyID == '\x1b[OC' or keyID == '\r':
             i = self.terminal.cursorPos.y
             if i >= 0 and i < len(self.tusers):
@@ -331,7 +334,7 @@ class mainListPage:
                         self.dbcursor, self.terminal,
                         self.callback)
             elif i == len(self.tusers):
-                self.curpage = bindingPage(self.user, self.dbcursor, self.terminal)
+                self.curpage = bindingPage(self.user, self.dbcursor, self.terminal, self.callback)
             elif i == len(self.tusers) + 3:
                 self.terminal.loseConnection()
                 return
@@ -356,7 +359,7 @@ class timelinePage:
         self.titles = ('Home','Mentions','Direct Messages','My Tweets','Favorites')
 
         self.show()
-        utils.drawCursorAt(self.terminal, self.cursor, 2, 0)
+        utils.moveCursorTo(self.terminal, self.cursor, 2, 0)
 
     def show(self):
         '''show the list'''
@@ -371,11 +374,21 @@ class timelinePage:
     ● (L)Lists''')
 
     def callback(self, *args):
-        '''called by sub-pages'''
+        '''called by sub-pages
+        @ivar param type:dict modified tweets' id(read or favorited) and tags
+        @ivar param type:bool isDM
+        '''
         del self.curpage
         self.curpage = None
         self.show()
-        utils.drawCursorAt(self.terminal, self.cursor, self.cursorX, self.cursorY)
+        utils.moveCursorTo(self.terminal, self.cursor, self.cursorX, self.cursorY)
+        #TODO write back read tweets
+        tablename = 'x%d' % self.tuser[0]
+        if args[1]:#isDM
+            tablename = 'd%d' % self.tuser[0]
+        for k,v in args[0].items():
+            self.dbcursor.execute('update %s set tag = ? where id = ?' % tablename,
+                    (v, k))
 
     def keystrokeReceived(self, keyID, modifier):
         '''处理键盘事件'''
@@ -449,6 +462,8 @@ class tweetListPage:
         self.cursorX, self.cursorY = 0, 0
         self.curpage = None
 
+        self.modtweets = {}
+
         # 总页数
         self.maxpage = len(self.tweets)/20
         if len(self.tweets) % 20 > 0:
@@ -461,9 +476,9 @@ class tweetListPage:
         '''show the list'''
         self.terminal.eraseDisplay()
         #TODO 汉字在终端上占2位, format计算时会算成三位(unicode编码长度)
-        head = '\x1b[33;44m@{0:<14}{1:^50}{2:>15}\r\n'.format(self.tuser[1], self.title, 'tterm')\
+        head = '\x1b[33;44m@{0:<14}{1:^50}{2:>15}\r\n'.format(self.tuser[1], self.title, 'Tw!term')\
                 + '\x1b[0m\x1b[32m{0:^92}\r\n'.format('发推[p] 回复[r] 发信[m] 标记[f] 搜索[/] 求助[h]')\
-                + '\x1b[33;44m    {0:<17} {1:<62}\r\n'.format('作者', '状态')
+                + '\x1b[33;44m   {0:<17} {1:<63}\r\n'.format('作者', '状态')
         self.terminal.cursorHome()
         self.terminal.write(head)
         foot = '\x1b[33;44m{0:80}\x1b[0m'.format(\
@@ -471,7 +486,7 @@ class tweetListPage:
         utils.setCursorPosition(self.terminal, 0, self.terminal.termSize.y-1)
         self.terminal.write(foot)
         self.showPage()
-        utils.drawCursorAt(self.terminal, self.cursor, 0, 3)
+        utils.moveCursorTo(self.terminal, self.cursor, 0, 3)
 
     def showPage(self):
         # clean page
@@ -489,13 +504,17 @@ class tweetListPage:
 
         #tweet[5].encode('utf-8').replace('\r',' ').replace('\n',' ')[:72]
         if self.isDM:
-            content = '\r\n'.join(['\x1b[0m *★ {0:<15} \x1b[37m{1}'.format(\
+            content = '\r\n'.join([' {0}{1:<2}{2:<15} {3}\x1b[0m'.format(\
+                    (tweet[1]&utils.TagRead) and '\x1b[0m' or '\x1b[33m',
+                    (tweet[1]&utils.TagFavorited) and '\x1b[33m★\x1b[0m' or '  ',
                     tweet[8].encode('utf-8'),
-                    utils.split(tweet[5], 60).encode('utf-8')) for tweet in self.templist])
+                    utils.split(tweet[5], 61).encode('utf-8')) for tweet in self.templist])
         else:
-            content = '\r\n'.join(['\x1b[0m *★ {0:<15} \x1b[37m{1}'.format(\
+            content = '\r\n'.join([' {0}{1:<2}{2:<15} {3}\x1b[0m'.format(\
+                    (tweet[1]&utils.TagRead) and '\x1b[0m' or '\x1b[33m',
+                    (tweet[1]&utils.TagFavorited) and '\x1b[33m★\x1b[0m' or '  ',
                     tweet[10].encode('utf-8'),
-                    utils.split(tweet[5], 60).encode('utf-8')) for tweet in self.templist])
+                    utils.split(tweet[5], 61).encode('utf-8')) for tweet in self.templist])
         return content
 
     def callback(self, *args):
@@ -503,7 +522,7 @@ class tweetListPage:
         del self.curpage
         self.curpage = None
         self.show()
-        utils.drawCursorAt(self.terminal, self.cursor, self.cursorX, self.cursorY)
+        utils.moveCursorTo(self.terminal, self.cursor, self.cursorX, self.cursorY)
 
     def keystrokeReceived(self, keyID, modifier):
         '''处理键盘事件'''
@@ -517,7 +536,7 @@ class tweetListPage:
             elif self.terminal.cursorPos.y == 3 and self.pagecursor > 0:
                 self.pagecursor -= 1
                 self.showPage()
-                utils.drawCursorAt(self.terminal, self.cursor, 0, self.terminal.termSize.y-2)
+                utils.moveCursorTo(self.terminal, self.cursor, 0, self.terminal.termSize.y-2)
         elif keyID == self.terminal.DOWN_ARROW or keyID == '\x1b[OB' or keyID == 'j':
             if self.terminal.cursorPos.y < len(self.templist)+2:
                 utils.cursorDown(self.terminal, self.cursor)
@@ -525,9 +544,9 @@ class tweetListPage:
                     and self.pagecursor < self.maxpage-1:
                 self.pagecursor += 1
                 self.showPage()
-                utils.drawCursorAt(self.terminal, self.cursor, 0, 3)
+                utils.moveCursorTo(self.terminal, self.cursor, 0, 3)
         elif keyID == self.terminal.LEFT_ARROW or keyID == '\x1b[OD':
-            self.pcallback()
+            self.pcallback(self.modtweets, self.isDM)
         elif keyID == self.terminal.RIGHT_ARROW or keyID == '\x1b[OC' or keyID == '\r':
             i = self.terminal.cursorPos.y
             if i >= 3 and i <= len(self.templist)+2:
@@ -538,45 +557,74 @@ class tweetListPage:
                             self.user, self.tuser,
                             self.dbcursor, self.terminal,
                             self.tweets, self.pagecursor*20+(i-3),
+                            self.modtweets,
                             self.callback)
                 else:
                     self.curpage = tweetPage(self.api,
                             self.user, self.tuser,
                             self.dbcursor, self.terminal,
                             self.tweets, self.pagecursor*20+(i-3),
+                            self.modtweets,
                             self.callback)
         elif keyID == self.terminal.PGUP:
             if self.pagecursor > 0:
                 self.pagecursor -= 1
                 self.showPage()
-                utils.drawCursorAt(self.terminal, self.cursor, 0, 3)
+                utils.moveCursorTo(self.terminal, self.cursor, 0, 3)
         elif keyID == ' ' or keyID == self.terminal.PGDN:
             if self.pagecursor < self.maxpage - 1:
                 self.pagecursor += 1
                 self.showPage()
-                utils.drawCursorAt(self.terminal, self.cursor, 0, 3)
+                utils.moveCursorTo(self.terminal, self.cursor, 0, 3)
         elif keyID == self.terminal.HOME or keyID == '\x1b[7~':
             # 显示第一页
             self.pagecursor = 0
             self.showPage()
-            utils.drawCursorAt(self.terminal, self.cursor, 0, 3)
+            utils.moveCursorTo(self.terminal, self.cursor, 0, 3)
         elif keyID == self.terminal.END or keyID == '\x1b[8~':
             # 显示最后一页
             self.pagecursor = self.maxpage-1
             self.showPage()
             i = len(self.tweets)%20
             if i == 0: i = 20
-            utils.drawCursorAt(self.terminal, self.cursor, 0, i+2)
+            utils.moveCursorTo(self.terminal, self.cursor, 0, i+2)
         elif keyID == 'p':
             self.cursorX = self.terminal.cursorPos.x
             self.cursorY = self.terminal.cursorPos.y
             self.curpage = postPage(self.api, self.terminal, self.callback)
-        #TODO p: tweet 
+        elif keyID == 'f':#favorise
+            i = self.terminal.cursorPos.y
+            if i >= 3 and i <= len(self.templist)+2:
+                tweet = list(self.tweets[self.pagecursor*20+(i-3)])
+                tweet[1] = tweet[1] ^ utils.TagFavorited
+                self.tweets[self.pagecursor*20+(i-3)] = tuple(tweet)
+                self.modtweets[tweet[0]] = tweet[1]
+                if tweet[1] & utils.TagFavorited:
+                    #self.api.create_favorite(tweet[0])
+                    self.terminal.write(' {0:<2}'.format('\x1b[33m★\x1b[0m'))
+                    utils.drawCursorAt(self.terminal, self.cursor, 0, i)
+                else:
+                    #self.api.destroy_favorite(tweet[0])
+                    self.terminal.write('   ')
+                    utils.drawCursorAt(self.terminal, self.cursor, 0, i)
+        elif keyID == 'a':#mark all as read
+            for t in self.tweets:
+                if not (t[1] & utils.TagRead):
+                    self.modtweets[t[0]] = (t[1] | utils.TagRead)
+            for i in xrange(len(self.tweets)):
+                tweet = list(self.tweets[i])
+                tweet[1] = tweet[1] | utils.TagRead
+                self.tweets[i] = tuple(tweet)
+            self.cursorX = self.terminal.cursorPos.x
+            self.cursorY = self.terminal.cursorPos.y
+            self.showPage()
+            utils.moveCursorTo(self.terminal, self.cursor, self.cursorX, self.cursorY)
 
 #========================================================
 class tweetPage:
     '''tweet page'''
-    def __init__(self, api, user, tuser, dbcursor, terminal, tweets, tweetcursor, pcallback):
+    def __init__(self, api, user, tuser, dbcursor, terminal,
+            tweets, tweetcursor, modtweets, pcallback):
         self.api = api
         self.user = user
         self.tuser = tuser
@@ -584,6 +632,7 @@ class tweetPage:
         self.terminal = terminal
         self.tweets = tweets
         self.tweetcursor = tweetcursor
+        self.modtweets = modtweets
         self.pcallback = pcallback
         self.cursor = consts.CURSOR
         self.cursorX, self.cursorY = 0, 0
@@ -594,6 +643,11 @@ class tweetPage:
     def show(self):
         '''show the tweet'''
         tweet = self.tweets[self.tweetcursor]
+        self.modtweets[tweet[0]] = tweet[1] | utils.TagRead
+        tweet = list(tweet)
+        tweet[1] = tweet[1] | utils.TagRead
+        tweet = tuple(tweet)
+        self.tweets[self.tweetcursor] = tweet
         t = tweet[3].encode('utf-8')
         t = time.strptime(t, "%a %b %d %H:%M:%S +0000 %Y")
         t = time.strftime("%Y.%m.%d %H:%M:%S", time.localtime(calendar.timegm(t)))
@@ -615,12 +669,13 @@ class tweetPage:
             if not found:
                 #TODO 可以根据消息文本开始处的用户名自己生成一个链接:
                 #http://twitter.com/daizw/status/9633364542
+                #TODO 这里有些问题，有些tweet的开头并不是用户名
                 content += '\x1b[34m\r\n【In Reply To】\r\n\x1b[32m http://twitter.com/%s/status/%d\r\n' % (\
                         tweet[5].split()[0][1:].encode('utf-8'),
                         tweet[6])
         
         foot = '\x1b[33m\r\n------\r\n ◆ {0:<6}: {1:<70}\x1b[0m'.format('位置',\
-                'tterm(http://code.google.com/p/twiterm/)')
+                'Tw!term(http://code.google.com/p/twiterm/)')
 
         self.terminal.eraseDisplay()
         self.terminal.cursorHome()
@@ -666,7 +721,8 @@ class tweetPage:
 #========================================================
 class dmPage:
     '''direct message page'''
-    def __init__(self, api, user, tuser, dbcursor, terminal, tweets, tweetcursor, pcallback):
+    def __init__(self, api, user, tuser, dbcursor, terminal,
+            tweets, tweetcursor, modtweets, pcallback):
         self.api = api
         self.user = user
         self.tuser = tuser
@@ -674,6 +730,7 @@ class dmPage:
         self.terminal = terminal
         self.tweets = tweets
         self.tweetcursor = tweetcursor
+        self.modtweets = modtweets
         self.pcallback = pcallback
         self.cursor = consts.CURSOR
         self.cursorX, self.cursorY = 0, 0
@@ -684,6 +741,11 @@ class dmPage:
     def show(self):
         '''show the tweet'''
         tweet = self.tweets[self.tweetcursor]
+        self.modtweets[tweet[0]] = tweet[1] | utils.TagRead
+        tweet = list(tweet)
+        tweet[1] = tweet[1] | utils.TagRead
+        tweet = tuple(tweet)
+        self.tweets[self.tweetcursor] = tweet
         t = tweet[4].encode('utf-8')
         t = time.strptime(t, "%a %b %d %H:%M:%S +0000 %Y")
         t = time.strftime("%Y.%m.%d %H:%M:%S", time.localtime(calendar.timegm(t)))
@@ -696,7 +758,7 @@ class dmPage:
         content = '\x1b[37m\r\n{0}\r\n'.format(tweet[5].encode('utf-8'))
         
         foot = '\x1b[33m\r\n------\r\n ◆ {0:<6}: {1:<70}\x1b[0m'.format('位置',\
-                'tterm(http://code.google.com/p/twiterm/)')
+                'Tw!term(http://code.google.com/p/twiterm/)')
 
         self.terminal.eraseDisplay()
         self.terminal.cursorHome()
@@ -759,7 +821,6 @@ class postPage:
         self.width = 3
         self.count = 0
 
-        self.show()
         ts = ''
         if self.type == 1:
             ts = '@%s ' % tweet[10].encode('utf-8')
@@ -769,7 +830,7 @@ class postPage:
             ts = 'dm %s ' % tweet[8].encode('utf-8')
         for c in ts:
             self.buffer.append(c)
-        self.terminal.write(ts)
+        self.show()
 
     def show(self):
         '''show the tweet'''
@@ -782,6 +843,7 @@ class postPage:
         self.terminal.eraseDisplay()
         self.terminal.cursorHome()
         self.terminal.write(head)
+        self.terminal.write(''.join(self.buffer))
 
     def callback(self, *args):
         '''called by sub-pages'''
@@ -809,11 +871,7 @@ class postPage:
                 #utils.setCursorPosition(self.terminal, self.cursorX, self.cursorY)
         elif str(keyID) in string.printable:
             self.buffer.append(keyID)
-            self.terminal.write(keyID)
-            #self.cursorX = self.terminal.cursorPos.x
-            #self.cursorY = self.terminal.cursorPos.y
-            #self.show()
-            #utils.setCursorPosition(self.terminal, self.cursorX, self.cursorY)
+            self.show()
         elif keyID == self.terminal.BACKSPACE:
             if self.buffer:
                 if str(self.buffer[-1]) in string.printable:
@@ -828,6 +886,7 @@ class postPage:
                     self.terminal.write('  ')
                     self.terminal.cursorBackward()
                     self.terminal.cursorBackward()
+            self.show()
         elif keyID == '\x1b' and modifier == self.terminal.ALT:
             self.pcallback()
         elif keyID in insults.FUNCTION_KEYS:
@@ -836,11 +895,7 @@ class postPage:
             self.buffer.append(keyID)
             self.count += 1
             if self.count == 3:
-                self.terminal.write(''.join(self.buffer[-3:]))
-                #self.cursorX = self.terminal.cursorPos.x
-                #self.cursorY = self.terminal.cursorPos.y
-                #self.show()
-                #utils.setCursorPosition(self.terminal, self.cursorX, self.cursorY)
                 self.count = 0
+                self.show()
 
 

@@ -149,6 +149,9 @@ def bind_api(**config):
                         resp = myopener.doGet(url, self.headers)
                     elif self.method == 'POST':
                         resp = myopener.doPost(url, self.post_data, self.headers)
+                    elif self.method == 'DELETE':
+                        self.post_data['_method'] = 'DELETE'
+                        resp = myopener.doPost(url, self.post_data, self.headers)
                     else:
                         raise Exception('error: unknown http method: ' + self.method)
                     #resp = conn.getresponse()

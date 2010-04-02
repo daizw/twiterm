@@ -32,7 +32,7 @@ userstate = {}
 # to update timelines
 updaters = {}
 
-class TtermProtocol(insults.TerminalProtocol):
+class TwitermProtocol(insults.TerminalProtocol):
     """Protocol for tweeting in terminal.
     """
 
@@ -194,7 +194,7 @@ def makeService(args):
     csvc.setServiceParent(m)
     return m
 
-application = service.Application("tterm")
-makeService({'protocol': TtermProtocol,
+application = service.Application("Twiterm")
+makeService({'protocol': TwitermProtocol,
              'ssh': 6022}).setServiceParent(application)
 
