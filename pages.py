@@ -465,9 +465,7 @@ class tweetListPage:
         self.modtweets = {}
 
         # 总页数
-        self.maxpage = len(self.tweets)/20
-        if len(self.tweets) % 20 > 0:
-            self.maxpage += 1
+        self.maxpage = (len(self.tweets)-1)/20 + 1
         self.templist = None
         self.pagecursor = 0
         self.show()
@@ -521,8 +519,9 @@ class tweetListPage:
         '''called by sub-pages'''
         del self.curpage
         self.curpage = None
+        self.pagecursor = args[0] / 20
         self.show()
-        utils.moveCursorTo(self.terminal, self.cursor, self.cursorX, self.cursorY)
+        utils.moveCursorTo(self.terminal, self.cursor, 0, args[0]%20 + 3)
 
     def keystrokeReceived(self, keyID, modifier):
         '''处理键盘事件'''
@@ -619,6 +618,32 @@ class tweetListPage:
             self.cursorY = self.terminal.cursorPos.y
             self.showPage()
             utils.moveCursorTo(self.terminal, self.cursor, self.cursorX, self.cursorY)
+        elif keyID == 'a':#同作者更早
+            p = self.terminal.cursorPos.y
+            if p >= 3 and p <= len(self.templist)+2:
+                idx = self.pagecursor*20+(p-3)
+                idindex = 8
+                if self.isDM:
+                    idindex = 6
+                for i in xrange(idx+1,len(self.tweets)):
+                    if self.tweets[i][idindex] == self.tweets[idx][idindex]:
+                        self.pagecursor = i / 20
+                        self.showPage()
+                        utils.moveCursorTo(self.terminal, self.cursor, 0, i%20 + 3)
+                        break
+        elif keyID == 'A':#同作者更晚
+            p = self.terminal.cursorPos.y
+            if p >= 3 and p <= len(self.templist)+2:
+                idx = self.pagecursor*20+(p-3)
+                idindex = 8
+                if self.isDM:
+                    idindex = 6
+                for i in xrange(idx-1, -1, -1):
+                    if self.tweets[i][idindex] == self.tweets[idx][idindex]:
+                        self.pagecursor = i / 20
+                        self.showPage()
+                        utils.moveCursorTo(self.terminal, self.cursor, 0, i%20 + 3)
+                        break
 
 #========================================================
 class tweetPage:
@@ -705,7 +730,7 @@ class tweetPage:
                 self.tweetcursor += 1
                 self.show()
         elif keyID == self.terminal.LEFT_ARROW or keyID == '\x1b[OD':
-            self.pcallback()
+            self.pcallback(self.tweetcursor)
         elif keyID == 'r':
             self.cursorX = self.terminal.cursorPos.x
             self.cursorY = self.terminal.cursorPos.y
@@ -788,7 +813,7 @@ class dmPage:
                 self.tweetcursor += 1
                 self.show()
         elif keyID == self.terminal.LEFT_ARROW or keyID == '\x1b[OD':
-            self.pcallback()
+            self.pcallback(self.tweetcursor)
         elif keyID == 'r':
             self.cursorX = self.terminal.cursorPos.x
             self.cursorY = self.terminal.cursorPos.y
