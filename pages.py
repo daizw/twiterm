@@ -519,9 +519,13 @@ class tweetListPage:
         '''called by sub-pages'''
         del self.curpage
         self.curpage = None
-        self.pagecursor = args[0] / 20
-        self.show()
-        utils.moveCursorTo(self.terminal, self.cursor, 0, args[0]%20 + 3)
+        if len(args) > 0:
+            self.pagecursor = args[0] / 20
+            self.show()
+            utils.moveCursorTo(self.terminal, self.cursor, 0, args[0]%20 + 3)
+        else:
+            self.show()
+            utils.moveCursorTo(self.terminal, self.cursor, self.cursorX, self.cursorY)
 
     def keystrokeReceived(self, keyID, modifier):
         '''处理键盘事件'''
@@ -644,6 +648,16 @@ class tweetListPage:
                         self.showPage()
                         utils.moveCursorTo(self.terminal, self.cursor, 0, i%20 + 3)
                         break
+        elif keyID == '\x01':#Ctrl-a, show profilepage
+            i = self.terminal.cursorPos.y
+            if i >= 3 and i <= len(self.templist)+2:
+                self.cursorX = self.terminal.cursorPos.x
+                self.cursorY = self.terminal.cursorPos.y
+                if self.isDM:
+                    info = self.tweets[self.pagecursor*20+(i-3)][6:14]
+                else:
+                    info = self.tweets[self.pagecursor*20+(i-3)][8:16]
+                self.curpage = profilePage(self.terminal, info, self.callback)
 
 #========================================================
 class tweetPage:
@@ -923,4 +937,42 @@ class postPage:
                 self.count = 0
                 self.show()
 
+
+#========================================================
+class profilePage:
+    '''profile page'''
+    def __init__(self, terminal, info, pcallback):
+        self.terminal = terminal
+        self.info = info
+        self.pcallback = pcallback
+        self.curpage = None
+
+        self.show()
+
+    def show(self):
+        '''show the profile'''
+        content = '\x1b[33m{0:<8}: {1}(@{2})\r\n'.format('Name', self.info[1].encode('utf-8'),\
+                self.info[2].encode('utf-8'))\
+                + '\x1b[33m{0:<8}: {1}\r\n'.format('Location', self.info[3].encode('utf-8'))\
+                + '\x1b[33m{0:<8}: {1}\r\n'.format('Web', self.info[6].encode('utf-8'))\
+                + '\x1b[33m{0:<8}: {1}\r\n'.format('Avatar', self.info[5].encode('utf-8'))\
+                + '\x1b[33m{0:<8}: {1}\r\n'.format('Bio', self.info[4].encode('utf-8'))
+
+        self.terminal.eraseDisplay()
+        self.terminal.cursorHome()
+        self.terminal.write(content)
+
+    def callback(self, *args):
+        '''called by sub-pages'''
+        del self.curpage
+        self.curpage = None
+        self.show()
+
+    def keystrokeReceived(self, keyID, modifier):
+        '''处理键盘事件'''
+        if self.curpage:
+            self.curpage.keystrokeReceived(keyID, modifier)
+            return
+
+        self.pcallback()
 
