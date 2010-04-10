@@ -296,11 +296,11 @@ class mainListPage:
         self.terminal.eraseDisplay()
         self.terminal.cursorHome()
         for i in xrange(len(self.tusers)):
-            self.terminal.write('''\x1b[33m    ● (%d)%s\x1b[0m\r\n''' % (i+1, self.tusers[i][1].encode('utf-8')))
+            self.terminal.write('''\x1b[0m    ● (%d)%s\x1b[0m\r\n''' % (i+1, self.tusers[i][1].encode('utf-8')))
         self.terminal.write('''\
+    \x1b[33m● (H)Help\x1b[0m
+    \x1b[33m● (A)About\x1b[0m
     \x1b[32m● (N)New binding\x1b[0m
-    ● (H)Help
-    ● (A)About
     \x1b[31m● (B)Goodbye!\x1b[0m''')
 
     def callback(self, *args):
@@ -322,8 +322,8 @@ class mainListPage:
         elif keyID == self.terminal.DOWN_ARROW or keyID == '\x1b[OB' or keyID == 'j':
             if self.terminal.cursorPos.y < len(self.tusers) + 3:
                 utils.cursorDown(self.terminal, self.cursor)
-        elif keyID == self.terminal.LEFT_ARROW or keyID == '\x1b[OD':
-            utils.moveCursorTo(self.terminal, self.cursor, 2, len(self.tusers)+3)
+        #elif keyID == self.terminal.LEFT_ARROW or keyID == '\x1b[OD':
+        #    utils.moveCursorTo(self.terminal, self.cursor, 2, len(self.tusers)+3)
         elif keyID == self.terminal.RIGHT_ARROW or keyID == '\x1b[OC' or keyID == '\r':
             i = self.terminal.cursorPos.y
             if i >= 0 and i < len(self.tusers):
@@ -333,7 +333,7 @@ class mainListPage:
                         self.user, self.tusers[i],
                         self.dbcursor, self.terminal,
                         self.callback)
-            elif i == len(self.tusers):
+            elif i == len(self.tusers) + 2:
                 self.curpage = bindingPage(self.user, self.dbcursor, self.terminal, self.callback)
             elif i == len(self.tusers) + 3:
                 self.terminal.loseConnection()
@@ -755,6 +755,11 @@ class tweetPage:
             self.cursorY = self.terminal.cursorPos.y
             tweet = self.tweets[self.tweetcursor]
             self.curpage = postPage(self.api, self.terminal, self.callback, tweet, type=2)
+        elif keyID == 'm':
+            self.cursorX = self.terminal.cursorPos.x
+            self.cursorY = self.terminal.cursorPos.y
+            tweet = self.tweets[self.tweetcursor]
+            self.curpage = postPage(self.api, self.terminal, self.callback, tweet, type=3)
         #TODO r:回复 m:dm作者 t:官方ReTweet f:favorite c:附评论RT
 
 #========================================================
@@ -833,7 +838,6 @@ class dmPage:
             self.cursorY = self.terminal.cursorPos.y
             tweet = self.tweets[self.tweetcursor]
             self.curpage = postPage(self.api, self.terminal, self.callback, tweet, type=3)
-        #TODO r:回复 m:dm作者 t:官方ReTweet f:favorite c:附评论RT
 
 #========================================================
 class postPage:
@@ -866,7 +870,13 @@ class postPage:
         elif self.type == 2:
             ts = 'RT @%s: %s' % (tweet[10].encode('utf-8'), tweet[5].encode('utf-8'))
         elif self.type == 3:
-            ts = 'dm %s ' % tweet[8].encode('utf-8')
+            if len(tweet) == 16:#tweet
+                ts = 'dm %s ' % tweet[10].encode('utf-8')
+            elif len(tweet) == 22:#direct message
+                ts = 'dm %s ' % tweet[8].encode('utf-8')
+            else:
+                print len(tweet), repr(tweet)
+                raise Exception('Funny tweet tuple')
         for c in ts:
             self.buffer.append(c)
         self.show()
