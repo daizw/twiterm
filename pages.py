@@ -943,9 +943,13 @@ class profilePage:
     '''profile page'''
     def __init__(self, terminal, info, pcallback):
         self.terminal = terminal
-        self.info = info
+        self.info = list(info)
         self.pcallback = pcallback
         self.curpage = None
+
+        for i in xrange(len(self.info)):
+            if not self.info[i]:
+                self.info[i] = ''
 
         self.show()
 
