@@ -102,6 +102,7 @@ class TwitermProtocol(insults.TerminalProtocol):
         connnum = self.updateConnectionNum(False)
         if connnum <= 0:
             self.stopUpdaters()
+        self.dbconn.commit()
         self.dbconn.close()
 
     def updateConnectionNum(self, bIncrease = True):

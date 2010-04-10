@@ -171,20 +171,23 @@ def updateHomeTimeline(uid, api):
     conn = sqlite.connect('data.db',10)
     dbcursor = conn.cursor()
     dbcursor.execute("select id, tag from %s order by id desc" % ('x%d'%uid))
-    resp = ''
-    while True:
-        id = dbcursor.fetchone()
-        #print 'since_id candidate:', id
-        if id:
-            if (id[1] & TagHome):
-                resp = api.home_timeline(since_id = id[0], count=200)
-                break
+    resp = '{}'
+    try:
+        while True:
+            id = dbcursor.fetchone()
+            #print 'since_id candidate:', id
+            if id:
+                if (id[1] & TagHome):
+                    resp = api.home_timeline(since_id = id[0], count=200)
+                    break
+                else:
+                    continue
             else:
-                continue
-        else:
-            #取最近的200个
-            resp = api.home_timeline(count = 200)
-            break
+                #取最近的200个
+                resp = api.home_timeline(count = 200)
+                break
+    except:
+        traceback.print_exc(file=sys.stdout)
     timeline = json.loads(resp)
     print '\x1b[31m!!!=== length of home timeline: %d\x1b[0m' % len(timeline) 
     for s in timeline:
@@ -220,20 +223,23 @@ def updateMentions(uid, api):
     conn = sqlite.connect('data.db',10)
     dbcursor = conn.cursor()
     dbcursor.execute("select id, tag from %s order by id desc" % ('x%d'%uid))
-    resp = ''
-    while True:
-        id = dbcursor.fetchone()
-        #print 'since_id candidate:', id
-        if id:
-            if (id[1] & TagMentions):
-                resp = api.mentions(since_id = id[0], count=200)
-                break
+    resp = '{}'
+    try:
+        while True:
+            id = dbcursor.fetchone()
+            #print 'since_id candidate:', id
+            if id:
+                if (id[1] & TagMentions):
+                    resp = api.mentions(since_id = id[0], count=200)
+                    break
+                else:
+                    continue
             else:
-                continue
-        else:
-            #取最近的200个
-            resp = api.mentions(count = 200)
-            break
+                #取最近的200个
+                resp = api.mentions(count = 200)
+                break
+    except:
+        traceback.print_exc(file=sys.stdout)
     timeline = json.loads(resp)
     print '\x1b[31m!!!=== length of mentions: %d\x1b[0m' % len(timeline) 
     for s in timeline:
@@ -272,11 +278,15 @@ def updateDirectMessages(uid, api):
             (uid,))
     id = dbcursor.fetchone()
     #print 'since_id candidate:', id
-    if id:
-        resp = api.direct_messages(since_id = id[0], count=200)
-    else:
-        #取最近的200个
-        resp = api.direct_messages(count = 200)
+    resp = '{}'
+    try:
+        if id:
+            resp = api.direct_messages(since_id = id[0], count=200)
+        else:
+            #取最近的200个
+            resp = api.direct_messages(count = 200)
+    except:
+        traceback.print_exc(file=sys.stdout)
     timeline = json.loads(resp)
     for s in timeline:
         try:
@@ -302,11 +312,15 @@ def updateSentDirectMessages(uid, api):
             (uid,))
     id = dbcursor.fetchone()
     #print 'since_id candidate:', id
-    if id:
-        resp = api.sent_direct_messages(since_id = id[0], count=200)
-    else:
-        #取最近的200个
-        resp = api.sent_direct_messages(count = 200)
+    resp = '{}'
+    try:
+        if id:
+            resp = api.sent_direct_messages(since_id = id[0], count=200)
+        else:
+            #取最近的200个
+            resp = api.sent_direct_messages(count = 200)
+    except:
+        traceback.print_exc(file=sys.stdout)
     timeline = json.loads(resp)
     for s in timeline:
         try:
