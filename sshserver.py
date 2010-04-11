@@ -5,6 +5,35 @@
 # See LICENSE for details.
 #
 
+# set proxy for Twiterm
+import socket
+import socks
+socket.setdefaulttimeout(10)
+socks.setdefaultproxy(socks.PROXY_TYPE_SOCKS5, "127.0.0.1", 7070)
+#socks.setdefaultproxy(socks.PROXY_TYPE_HTTP, "127.0.0.1", 8000)
+socket.socket = socks.socksocket
+ 
+def _create_connection(address, timeout=socket._GLOBAL_DEFAULT_TIMEOUT):
+    msg = "getaddrinfo returns an empty list"
+    host, port = address
+    for res in socket.getaddrinfo(host, port, 0, socket.SOCK_STREAM):
+        af, socktype, proto, canonname, sa = res
+        sock = None
+        try:
+            sock = socket.socket(af, socktype, proto)
+            if timeout is not socket._GLOBAL_DEFAULT_TIMEOUT:
+                sock.settimeout(timeout)
+            sock.connect(address)
+            return sock
+ 
+        except socket.error, msg:
+            if sock is not None:
+                sock.close()
+ 
+    raise socket.error, msg
+ 
+socket.create_connection = _create_connection
+
 import string
 import time
 import sqlite3 as sqlite

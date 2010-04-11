@@ -2,20 +2,18 @@
 # Copyright 2009-2010 Joshua Roesslein
 # See LICENSE for details.
 
+import httplib
 import urllib
-import urllib2
-import cookielib
 import time
 import re
 
 from tweepy.error import TweepError
-from tweepy.utils import convert_to_utf8_str, myopener
+from tweepy.utils import convert_to_utf8_str
 
 re_path_template = re.compile('{\w+}')
 
 
 def bind_api(**config):
-
 
     class APIMethod(object):
 
@@ -27,7 +25,6 @@ def bind_api(**config):
         require_auth = config.get('require_auth', False)
         search_api = config.get('search_api', False)
 
-
         def __init__(self, api, args, kargs):
             # If authentication is required and no credentials
             # are provided, throw an error.
@@ -35,7 +32,7 @@ def bind_api(**config):
                 raise TweepError('Authentication required!')
 
             self.api = api
-            self.post_data = kargs.pop('post_data', {})
+            self.post_data = kargs.pop('post_data', None)
             self.retry_count = kargs.pop('retry_count', api.retry_count)
             self.retry_delay = kargs.pop('retry_delay', api.retry_delay)
             self.retry_errors = kargs.pop('retry_errors', api.retry_errors)
@@ -88,7 +85,8 @@ def bind_api(**config):
             for variable in re_path_template.findall(self.path):
                 name = variable.strip('{}')
 
-                if name == 'user' and self.api.auth:
+                if name == 'user' and 'user' not in self.parameters and self.api.auth:
+                    # No 'user' parameter provided, fetch it from Auth instead.
                     value = self.api.auth.get_username()
                 else:
                     try:
@@ -98,7 +96,6 @@ def bind_api(**config):
                     del self.parameters[name]
 
                 self.path = self.path.replace(variable, value)
-        
 
         def execute(self):
             # Build the request URL
@@ -127,11 +124,9 @@ def bind_api(**config):
                 # Open connection
                 # FIXME: add timeout
                 if self.api.secure:
-                    print 'using https', self.host
-                    #conn = httplib.HTTPSConnection(self.host, timeout=10)
+                    conn = httplib.HTTPSConnection(self.host)
                 else:
-                    print 'using http', self.host
-                    #conn = httplib.HTTPConnection(self.host, timeout=10)
+                    conn = httplib.HTTPConnection(self.host)
 
                 # Apply authentication
                 if self.api.auth:
@@ -142,56 +137,43 @@ def bind_api(**config):
 
                 # Execute request
                 try:
-                    url = self.scheme + self.host + url
-
-                    #conn.request(self.method, url, headers=self.headers, body=self.post_data)
-                    if self.method == 'GET':
-                        resp = myopener.doGet(url, self.headers)
-                    elif self.method == 'POST':
-                        resp = myopener.doPost(url, self.post_data, self.headers)
-                    elif self.method == 'DELETE':
-                        self.post_data['_method'] = 'DELETE'
-                        resp = myopener.doPost(url, self.post_data, self.headers)
-                    else:
-                        raise Exception('error: unknown http method: ' + self.method)
-                    #resp = conn.getresponse()
+                    conn.request(self.method, url, headers=self.headers, body=self.post_data)
+                    resp = conn.getresponse()
                 except Exception, e:
                     raise TweepError('Failed to send request: %s' % e)
 
                 # Exit request loop if non-retry error code
                 if self.retry_errors:
-                    if resp.code not in self.retry_errors: break
+                    if resp.status not in self.retry_errors: break
                 else:
-                    if resp.code == 200: break
+                    if resp.status == 200: break
 
                 # Sleep before retrying request again
                 time.sleep(self.retry_delay)
                 retries_performed += 1
 
             # If an error was returned, throw an exception
-            #TODO last_response actually doesn't exist.
-            #self.api.last_response = resp
-            respStr = resp.read()
-            if resp.code != 200:
+            self.api.last_response = resp
+            if resp.status != 200:
                 try:
-                    error_msg = self.api.parser.parse_error(self, respStr)
+                    error_msg = self.api.parser.parse_error(resp.read())
                 except Exception:
-                    error_msg = "Twitter error response: status code = %s" % resp.code
+                    error_msg = "Twitter error response: status code = %s" % resp.status
                 raise TweepError(error_msg, resp)
 
-            #return response in json format
-            return respStr
+            # Parse the response payload
+            #result = self.api.parser.parse(self, resp.read())
 
-            ## Parse the response payload
-            #result = self.api.parser.parse(self, respStr)
+            # return result in json format
+            result = resp.read()
 
-            ##conn.close()
+            conn.close()
 
             ## Store result into cache if one is available.
             #if self.api.cache and self.method == 'GET' and result:
             #    self.api.cache.store(url, result)
 
-            #return result
+            return result
 
 
     def _call(api, *args, **kargs):

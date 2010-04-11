@@ -6,15 +6,19 @@ from datetime import datetime
 import time
 import htmlentitydefs
 import re
+import locale
 
-from tweepy.urlopener import UrlOpener
 
-myopener = UrlOpener()
-
-def parse_datetime(str):
+def parse_datetime(string):
+    # Set locale for date parsing
+    locale.setlocale(locale.LC_TIME, 'C')
 
     # We must parse datetime this way to work in python 2.4
-    return datetime(*(time.strptime(str, '%a %b %d %H:%M:%S +0000 %Y')[0:6]))
+    date = datetime(*(time.strptime(string, '%a %b %d %H:%M:%S +0000 %Y')[0:6]))
+
+    # Reset locale back to the default setting
+    locale.setlocale(locale.LC_TIME, '')
+    return date
 
 
 def parse_html_value(html):
@@ -29,10 +33,16 @@ def parse_a_href(atag):
     return atag[start:end]
 
 
-def parse_search_datetime(str):
+def parse_search_datetime(string):
+    # Set locale for date parsing
+    locale.setlocale(locale.LC_TIME, 'C')
 
-    # python 2.4
-    return datetime(*(time.strptime(str, '%a, %d %b %Y %H:%M:%S +0000')[0:6]))
+    # We must parse datetime this way to work in python 2.4
+    date = datetime(*(time.strptime(string, '%a, %d %b %Y %H:%M:%S +0000')[0:6]))
+
+    # Reset locale back to the default setting
+    locale.setlocale(locale.LC_TIME, '')
+    return date
 
 
 def unescape_html(text):
@@ -81,4 +91,8 @@ def import_simplejson():
                 raise ImportError, "Can't load a json library"
 
     return json
+
+def list_to_csv(item_list):
+    if item_list:
+        return ','.join([str(i) for i in item_list])
 
