@@ -72,7 +72,7 @@ class registerPage:
     def showPrompt_userexist(self):
         self.terminal.eraseLine()
         self.terminal.cursorHome()
-        self.terminal.write('\x1b[31mThis username is already taken, try another one.\x1b[0m')
+        self.terminal.write('\x1b[1;31mThis username is already taken, try another one.\x1b[0m')
         self.showPrompt_username()
 
     def showPrompt_succeed(self):
@@ -83,7 +83,7 @@ class registerPage:
 
     def showPrompt_fail(self):
         self.terminal.write('\r\n\r\n')
-        self.terminal.write('\x1b[31mThe two passwords you input does not match!\x1b[0m')
+        self.terminal.write('\x1b[1;31mThe two passwords you input does not match!\x1b[0m')
         self.showPrompt_relogin()
         
     def keystrokeReceived(self, keyID, modifier):
@@ -242,7 +242,7 @@ class bindingPage:
             traceback.print_exc(file=sys.stdout)
             self.terminal.write('\r\n\r\n')
             self.terminal.write('Something is wrong, relogin to try again:\r\n')
-            self.terminal.write('\x1b[31m%s\x1b[0m\r\n' % e.message)
+            self.terminal.write('\x1b[1;31m%s\x1b[0m\r\n' % e.message)
 
         self.accept = True
         self.loseConn = True
@@ -296,12 +296,12 @@ class mainListPage:
         self.terminal.eraseDisplay()
         self.terminal.cursorHome()
         for i in xrange(len(self.tusers)):
-            self.terminal.write('''\x1b[0m    ● (%d)%s\x1b[0m\r\n''' % (i+1, self.tusers[i][1].encode('utf-8')))
+            self.terminal.write('''\x1b[1;37m    ● (%d)%s\x1b[0m\r\n''' % (i+1, self.tusers[i][1].encode('utf-8')))
         self.terminal.write('''\
-    \x1b[33m● (H)Help\x1b[0m
-    \x1b[33m● (A)About\x1b[0m
-    \x1b[32m● (N)New binding\x1b[0m
-    \x1b[31m● (B)Goodbye!\x1b[0m''')
+    \x1b[1;33m● (H)Help\x1b[0m
+    \x1b[1;33m● (A)About\x1b[0m
+    \x1b[1;32m● (N)New binding\x1b[0m
+    \x1b[1;31m● (B)Goodbye!\x1b[0m''')
 
     def callback(self, *args):
         '''called by sub-pages'''
@@ -365,13 +365,13 @@ class timelinePage:
         '''show the list'''
         self.terminal.eraseDisplay()
         self.terminal.cursorHome()
-        self.terminal.write('''\x1b[37m\
+        self.terminal.write('''\x1b[1;37m\
     ● (H)Home
     ● (M)Mentions
     ● (D)Direct Messages
     ● (T)My Tweets
     ● (F)Favorites
-    ● (L)Lists''')
+    ● (L)Lists\x1b[0m''')
 
     def callback(self, *args):
         '''called by sub-pages
@@ -474,12 +474,12 @@ class tweetListPage:
         '''show the list'''
         self.terminal.eraseDisplay()
         #TODO 汉字在终端上占2位, format计算时会算成三位(unicode编码长度)
-        head = '\x1b[33;44m@{0:<14}{1:^50}{2:>15}\r\n'.format(self.tuser[1], self.title, 'Tw!term')\
-                + '\x1b[0m\x1b[32m{0:^92}\r\n'.format('发推[p] 回复[r] 发信[m] 标记[f] 搜索[/] 求助[h]')\
-                + '\x1b[33;44m   {0:<17} {1:<63}\r\n'.format('作者', '状态')
+        head = '\x1b[1;33;44m@{0:<14}{1:^50}{2:>15}\r\n'.format(self.tuser[1], self.title, 'Tw!term')\
+                + '\x1b[0m\x1b[1;32m{0:^92}\r\n'.format('发推[p] 回复[r] 发信[m] 标记[f] 搜索[/] 求助[h]')\
+                + '\x1b[1;33;44m   {0:<17} {1:<63}\r\n'.format('作者', '状态')
         self.terminal.cursorHome()
         self.terminal.write(head)
-        foot = '\x1b[33;44m{0:80}\x1b[0m'.format(\
+        foot = '\x1b[1;33;44m{0:80}\x1b[0m'.format(\
                 '')
         utils.setCursorPosition(self.terminal, 0, self.terminal.termSize.y-1)
         self.terminal.write(foot)
@@ -501,18 +501,14 @@ class tweetListPage:
         self.templist = self.tweets[20*self.pagecursor:20*self.pagecursor+20]
 
         #tweet[5].encode('utf-8').replace('\r',' ').replace('\n',' ')[:72]
+        index = 10
         if self.isDM:
-            content = '\r\n'.join([' {0}{1:<2}{2:<15} {3}\x1b[0m'.format(\
-                    (tweet[1]&utils.TagRead) and '\x1b[0m' or '\x1b[33m',
-                    (tweet[1]&utils.TagFavorited) and '\x1b[33m★\x1b[0m' or '  ',
-                    tweet[8].encode('utf-8'),
-                    utils.split(tweet[5], 61).encode('utf-8')) for tweet in self.templist])
-        else:
-            content = '\r\n'.join([' {0}{1:<2}{2:<15} {3}\x1b[0m'.format(\
-                    (tweet[1]&utils.TagRead) and '\x1b[0m' or '\x1b[33m',
-                    (tweet[1]&utils.TagFavorited) and '\x1b[33m★\x1b[0m' or '  ',
-                    tweet[10].encode('utf-8'),
-                    utils.split(tweet[5], 61).encode('utf-8')) for tweet in self.templist])
+            index = 8
+        content = '\r\n'.join([' {0:<2}{1}{2:<15} {3}\x1b[0m'.format(\
+                (tweet[1]&utils.TagFavorited) and '\x1b[1;33m★\x1b[0m' or '  ',
+                (tweet[1]&utils.TagRead) and '\x1b[0m' or '\x1b[1;33m',
+                tweet[index].encode('utf-8'),
+                utils.split(tweet[5], 61).encode('utf-8')) for tweet in self.templist])
         return content
 
     def callback(self, *args):
@@ -604,7 +600,7 @@ class tweetListPage:
                 self.modtweets[tweet[0]] = tweet[1]
                 if tweet[1] & utils.TagFavorited:
                     #self.api.create_favorite(tweet[0])
-                    self.terminal.write(' {0:<2}'.format('\x1b[33m★\x1b[0m'))
+                    self.terminal.write(' {0:<2}'.format('\x1b[1;33m★\x1b[0m'))
                     utils.drawCursorAt(self.terminal, self.cursor, 0, i)
                 else:
                     #self.api.destroy_favorite(tweet[0])
@@ -690,18 +686,18 @@ class tweetPage:
         t = tweet[3].encode('utf-8')
         t = time.strptime(t, "%a %b %d %H:%M:%S +0000 %Y")
         t = time.strftime("%Y.%m.%d %H:%M:%S", time.localtime(calendar.timegm(t)))
-        head = '\x1b[33m{0:<6}: {1}({2})\r\n'.format('作者', tweet[10].encode('utf-8'),\
+        head = '\x1b[1;33m{0:<6}: {1}({2})\r\n'.format('作者', tweet[10].encode('utf-8'),\
                 tweet[9].encode('utf-8'))\
-                + '\x1b[33m{0:<6}: {1}\r\n'.format('时间', t)\
-                + '\x1b[33m{0:<6}: {1}\r\n'.format('来源', tweet[4].encode('utf-8'))
+                + '\x1b[1;33m{0:<6}: {1}\r\n'.format('时间', t)\
+                + '\x1b[1;33m{0:<6}: {1}\r\n'.format('来源', tweet[4].encode('utf-8'))
 
-        content = '\x1b[37m\r\n{0}\r\n'.format(tweet[5].encode('utf-8'))
+        content = '\x1b[1;37m\r\n{0}\r\n'.format(tweet[5].encode('utf-8'))
 
         if tweet[6]:
             found = False
             for t in self.tweets:
                 if tweet[6] == t[0]:
-                    content += '\x1b[34m\r\n【@%s 说:】\r\n\x1b[32m%s\r\n' % (\
+                    content += '\x1b[1;34m\r\n【@%s 说:】\r\n\x1b[1;32m%s\r\n' % (\
                             t[10].encode('utf-8'), t[5].encode('utf-8'))
                     found = True
                     break
@@ -709,11 +705,11 @@ class tweetPage:
                 #TODO 可以根据消息文本开始处的用户名自己生成一个链接:
                 #http://twitter.com/daizw/status/9633364542
                 #TODO 这里有些问题，有些tweet的开头并不是用户名
-                content += '\x1b[34m\r\n【In Reply To】\r\n\x1b[32m http://twitter.com/%s/status/%d\r\n' % (\
+                content += '\x1b[1;34m\r\n【In Reply To】\r\n\x1b[1;32m http://twitter.com/%s/status/%d\r\n' % (\
                         tweet[5].split()[0][1:].encode('utf-8'),
                         tweet[6])
         
-        foot = '\x1b[33m\r\n------\r\n ◆ {0:<6}: {1:<70}\x1b[0m'.format('位置',\
+        foot = '\x1b[1;33m\r\n------\r\n ◆ {0:<6}: {1:<70}\x1b[0m'.format('位置',\
                 'Tw!term(http://code.google.com/p/twiterm/)')
 
         self.terminal.eraseDisplay()
@@ -793,15 +789,15 @@ class dmPage:
         t = tweet[4].encode('utf-8')
         t = time.strptime(t, "%a %b %d %H:%M:%S +0000 %Y")
         t = time.strftime("%Y.%m.%d %H:%M:%S", time.localtime(calendar.timegm(t)))
-        head = '\x1b[33m{0:<9}: {1}({2})\r\n'.format('发信人', \
+        head = '\x1b[1;33m{0:<9}: {1}({2})\r\n'.format('发信人', \
                 tweet[8].encode('utf-8'), tweet[7].encode('utf-8'))\
-                + '\x1b[33m{0:<9}: {1}({2})\r\n'.format('收信人', \
+                + '\x1b[1;33m{0:<9}: {1}({2})\r\n'.format('收信人', \
                 tweet[16].encode('utf-8'), tweet[15].encode('utf-8'))\
-                + '\x1b[33m{0:<8}: {1}\r\n'.format('时  间', t)
+                + '\x1b[1;33m{0:<8}: {1}\r\n'.format('时  间', t)
 
-        content = '\x1b[37m\r\n{0}\r\n'.format(tweet[5].encode('utf-8'))
+        content = '\x1b[1;37m\r\n{0}\r\n'.format(tweet[5].encode('utf-8'))
         
-        foot = '\x1b[33m\r\n------\r\n ◆ {0:<6}: {1:<70}\x1b[0m'.format('位置',\
+        foot = '\x1b[1;33m\r\n------\r\n ◆ {0:<6}: {1:<70}\x1b[0m'.format('位置',\
                 'Tw!term(http://code.google.com/p/twiterm/)')
 
         self.terminal.eraseDisplay()
@@ -884,7 +880,7 @@ class postPage:
     def show(self):
         '''show the tweet'''
 
-        head = '\x1b[33;44m{0:>3}/{1} {2:>72}\x1b[0m\r\n'.format(\
+        head = '\x1b[1;33;44m{0:>3}/{1} {2:>72}\x1b[0m\r\n'.format(\
                 self.limit - len(''.join(self.buffer).decode('utf-8')),
                 self.limit,
                 'Post: press Enter twice | Cancel: press Esc twice')
@@ -965,12 +961,12 @@ class profilePage:
 
     def show(self):
         '''show the profile'''
-        content = '\x1b[33m{0:<8}: {1}(@{2})\r\n'.format('Name', self.info[1].encode('utf-8'),\
+        content = '\x1b[1;33m{0:<8}: {1}(@{2})\r\n'.format('Name', self.info[1].encode('utf-8'),\
                 self.info[2].encode('utf-8'))\
-                + '\x1b[33m{0:<8}: {1}\r\n'.format('Location', self.info[3].encode('utf-8'))\
-                + '\x1b[33m{0:<8}: {1}\r\n'.format('Web', self.info[6].encode('utf-8'))\
-                + '\x1b[33m{0:<8}: {1}\r\n'.format('Avatar', self.info[5].encode('utf-8'))\
-                + '\x1b[33m{0:<8}: {1}\r\n'.format('Bio', self.info[4].encode('utf-8'))
+                + '\x1b[1;33m{0:<8}: {1}\r\n'.format('Location', self.info[3].encode('utf-8'))\
+                + '\x1b[1;33m{0:<8}: {1}\r\n'.format('Web', self.info[6].encode('utf-8'))\
+                + '\x1b[1;33m{0:<8}: {1}\r\n'.format('Avatar', self.info[5].encode('utf-8'))\
+                + '\x1b[1;33m{0:<8}: {1}\r\n'.format('Bio', self.info[4].encode('utf-8'))
 
         self.terminal.eraseDisplay()
         self.terminal.cursorHome()
