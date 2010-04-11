@@ -7,7 +7,7 @@
 import socket
 socket.setdefaulttimeout(10)
 
-# set proxy for Twiterm
+#======== set socks5 proxy for Twiterm: BEGIN ========
 import socks
 socks.setdefaultproxy(socks.PROXY_TYPE_SOCKS5, "127.0.0.1", 7070)
 #socks.setdefaultproxy(socks.PROXY_TYPE_HTTP, "127.0.0.1", 8000)
@@ -33,6 +33,7 @@ def _create_connection(address, timeout=socket._GLOBAL_DEFAULT_TIMEOUT):
     raise socket.error, msg
  
 socket.create_connection = _create_connection
+#======== set socks5 proxy for Twiterm: END ========
 
 import string
 import time
