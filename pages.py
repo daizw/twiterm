@@ -1,5 +1,8 @@
 #!/usr/bin/python
 # encoding: utf-8
+#
+# Copyright (c) 2010 shinysky
+# See LICENSE for details.
 
 import sys, traceback
 import string

@@ -1,5 +1,11 @@
+#!/usr/bin/python
+# encoding: utf-8
+#
+# Copyright (c) 2010 shinysky
+# See LICENSE for details.
+#
+# @deprecated
 
-#set global timeout in seconds
 import socket
 import urllib2
 import cookielib
@@ -7,8 +13,8 @@ import cookielib
 class UrlOpener:
     '''a customed url opener'''
     def __init__(self):
-        timeout = 10
-        socket.setdefaulttimeout(timeout)
+        #set global timeout in seconds
+        socket.setdefaulttimeout(10)
         self.buildOpener()
 
     def buildOpener(self):

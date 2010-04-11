@@ -3,12 +3,12 @@
 #
 # Copyright (c) 2010 shinysky
 # See LICENSE for details.
-#
+
+import socket
+socket.setdefaulttimeout(10)
 
 # set proxy for Twiterm
-import socket
 import socks
-socket.setdefaulttimeout(10)
 socks.setdefaultproxy(socks.PROXY_TYPE_SOCKS5, "127.0.0.1", 7070)
 #socks.setdefaultproxy(socks.PROXY_TYPE_HTTP, "127.0.0.1", 8000)
 socket.socket = socks.socksocket

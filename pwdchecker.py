@@ -1,5 +1,8 @@
 #!/usr/bin/python
-# coding: utf-8
+# encoding: utf-8
+#
+# Copyright (c) 2010 shinysky
+# See LICENSE for details.
 
 import hashlib
 import sqlite3 as sqlite

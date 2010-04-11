@@ -3,7 +3,6 @@
 #
 # Copyright (c) 2010 shinysky
 # See LICENSE for details.
-#
 
 import sys, traceback
 import sqlite3 as sqlite
