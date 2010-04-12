@@ -478,7 +478,7 @@ class tweetListPage:
         self.terminal.eraseDisplay()
         #TODO 汉字在终端上占2位, format计算时会算成三位(unicode编码长度)
         head = '\x1b[1;33;44m@{0:<14}{1:^50}{2:>15}\r\n'.format(self.tuser[1], self.title, 'Tw!term')\
-                + '\x1b[0m\x1b[1;32m{0:^92}\r\n'.format('发推[p] 回复[r] 发信[m] 标记[f] 搜索[/] 求助[h]')\
+                + '\x1b[0m\x1b[1;32m{0:^92}\r\n'.format('发推[p] 回复[r] 发信[m] 标记[g] 搜索[/] 求助[h]')\
                 + '\x1b[1;33;44m   {0:<17} {1:<63}\r\n'.format('作者', '状态')
         self.terminal.cursorHome()
         self.terminal.write(head)
