@@ -325,7 +325,7 @@ class mainListPage:
         elif keyID == self.terminal.DOWN_ARROW or keyID == '\x1b[OB' or keyID == 'j':
             if self.terminal.cursorPos.y < len(self.tusers) + 3:
                 utils.cursorDown(self.terminal, self.cursor)
-        #elif keyID == self.terminal.LEFT_ARROW or keyID == '\x1b[OD':
+        #elif keyID == self.terminal.LEFT_ARROW or keyID == '\x1b[OD' or keyID == 'e' or keyID == 'q':
         #    utils.moveCursorTo(self.terminal, self.cursor, 2, len(self.tusers)+3)
         elif keyID == self.terminal.RIGHT_ARROW or keyID == '\x1b[OC' or keyID == '\r':
             i = self.terminal.cursorPos.y
@@ -405,7 +405,7 @@ class timelinePage:
         elif keyID == self.terminal.DOWN_ARROW or keyID == '\x1b[OB' or keyID == 'j':
             if self.terminal.cursorPos.y < 5:
                 utils.cursorDown(self.terminal, self.cursor)
-        elif keyID == self.terminal.LEFT_ARROW or keyID == '\x1b[OD':
+        elif keyID == self.terminal.LEFT_ARROW or keyID == '\x1b[OD' or keyID == 'e' or keyID == 'q':
             self.pcallback()
         elif keyID == self.terminal.RIGHT_ARROW or keyID == '\x1b[OC' or keyID == '\r':
             i = self.terminal.cursorPos.y
@@ -547,7 +547,7 @@ class tweetListPage:
                 self.pagecursor += 1
                 self.showPage()
                 utils.moveCursorTo(self.terminal, self.cursor, 0, 3)
-        elif keyID == self.terminal.LEFT_ARROW or keyID == '\x1b[OD':
+        elif keyID == self.terminal.LEFT_ARROW or keyID == '\x1b[OD' or keyID == 'e' or keyID == 'q':
             self.pcallback(self.modtweets, self.isDM)
         elif keyID == self.terminal.RIGHT_ARROW or keyID == '\x1b[OC' or keyID == '\r':
             i = self.terminal.cursorPos.y
@@ -742,7 +742,7 @@ class tweetPage:
             if self.tweetcursor < len(self.tweets)-1:
                 self.tweetcursor += 1
                 self.show()
-        elif keyID == self.terminal.LEFT_ARROW or keyID == '\x1b[OD':
+        elif keyID == self.terminal.LEFT_ARROW or keyID == '\x1b[OD' or keyID == 'e' or keyID == 'q':
             self.pcallback(self.tweetcursor)
         elif keyID == 'r':
             self.cursorX = self.terminal.cursorPos.x
@@ -830,7 +830,7 @@ class dmPage:
             if self.tweetcursor < len(self.tweets)-1:
                 self.tweetcursor += 1
                 self.show()
-        elif keyID == self.terminal.LEFT_ARROW or keyID == '\x1b[OD':
+        elif keyID == self.terminal.LEFT_ARROW or keyID == '\x1b[OD' or keyID == 'e' or keyID == 'q':
             self.pcallback(self.tweetcursor)
         elif keyID == 'r':
             self.cursorX = self.terminal.cursorPos.x
