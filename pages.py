@@ -374,7 +374,7 @@ class timelinePage:
     ● (D)Direct Messages
     ● (T)My Tweets
     ● (F)Favorites
-    ● (L)Lists\x1b[0m''')
+    ● (B)Blacklist\x1b[0m''')
 
     def callback(self, *args):
         '''called by sub-pages
@@ -385,13 +385,14 @@ class timelinePage:
         self.curpage = None
         self.show()
         utils.moveCursorTo(self.terminal, self.cursor, self.cursorX, self.cursorY)
-        #TODO write back read tweets
-        tablename = 'x%d' % self.tuser[0]
-        if args[1]:#isDM
-            tablename = 'd%d' % self.tuser[0]
-        for k,v in args[0].items():
-            self.dbcursor.execute('update %s set tag = ? where id = ?' % tablename,
-                    (v, k))
+        if args:
+            #TODO write back read tweets
+            tablename = 'x%d' % self.tuser[0]
+            if args[1]:#isDM
+                tablename = 'd%d' % self.tuser[0]
+            for k,v in args[0].items():
+                self.dbcursor.execute('update %s set tag = ? where id = ?' % tablename,
+                        (v, k))
 
     def keystrokeReceived(self, keyID, modifier):
         '''处理键盘事件'''
@@ -419,7 +420,20 @@ class timelinePage:
                 tweets = self.dbcursor.fetchall()
                 temptweets = []
                 if i == 0:
-                    temptweets = [t for t in tweets if (t[1] & utils.TagHome)]
+                    self.dbcursor.execute('select other from bindings where id=?',
+                            (self.tuser[0],))
+                    res = self.dbcursor.fetchone()
+                    if res and res[0]:
+                        dict = json.loads(res[0])
+                    else:
+                        dict = {}
+                    if 'blist' not in dict:
+                        dict['blist'] = []
+                    idlist = dict['blist']
+                    if idlist:
+                        temptweets = [t for t in tweets if (t[1] & utils.TagHome) and t[2] not in idlist]
+                    else:
+                        temptweets = [t for t in tweets if (t[1] & utils.TagHome)]
                 elif i == 1:
                     temptweets = [t for t in tweets if (t[1] & utils.TagMentions)]
                 elif i == 3:
@@ -430,7 +444,6 @@ class timelinePage:
                 self.curpage = tweetListPage(self.api, self.titles[i], self.user, self.tuser,
                         temptweets, self.dbcursor, self.terminal, self.callback)
             elif i == 2:
-                #TODO direct message page
                 self.cursorX = self.terminal.cursorPos.x
                 self.cursorY = self.terminal.cursorPos.y
                 self.dbcursor.execute('select * from ({0} \
@@ -442,9 +455,122 @@ class timelinePage:
                 tweets = self.dbcursor.fetchall()
                 self.curpage = tweetListPage(self.api, self.titles[i], self.user, self.tuser,
                         tweets, self.dbcursor, self.terminal, self.callback, isDM = True)
+            elif i == 5:
+                #blacklist
+                self.cursorX = self.terminal.cursorPos.x
+                self.cursorY = self.terminal.cursorPos.y
+                self.curpage = blacklistPage(self.user, self.tuser, self.dbcursor, self.terminal, self.callback)
             else:
                 #TODO the other options
                 pass
+
+#========================================================
+class blacklistPage:
+    '''blacklist page'''
+    def __init__(self, user, tuser, dbcursor, terminal, pcallback):
+        self.user = user
+        self.tuser = tuser
+        self.dbcursor = dbcursor
+        self.terminal = terminal
+        self.pcallback = pcallback
+        
+        self.cursor = consts.CURSOR
+        self.cursorX, self.cursorY = 0, 0
+        self.curpage = None
+
+        self.show()
+        utils.moveCursorTo(self.terminal, self.cursor, 2, 0)
+
+    def show(self):
+        '''show the list'''
+        self.terminal.eraseDisplay()
+        self.terminal.cursorHome()
+        self.terminal.write('''\x1b[1;37m\
+    ● (A)Add to blacklist
+    ● (R)Remove from blacklist
+    ● (S)Show the blacklist\x1b[0m''')
+
+    def callback(self, *args):
+        '''called by sub-pages
+        @ivar args[0] input text
+        '''
+        if self.cursorY != 2 and args:
+            blist = args[0].split()
+            idlist = []
+            for u in blist:
+                self.dbcursor.execute('select id from twitterusers where screenname=?',
+                        (u,))
+                id = self.dbcursor.fetchone()
+                if id:
+                    idlist.append(id[0])
+            if idlist:
+                self.dbcursor.execute('select other from bindings where id=?',
+                        (self.tuser[0],))
+                res = self.dbcursor.fetchone()
+                if res and res[0]:
+                    dict = json.loads(res[0])
+                else:
+                    dict = {}
+                if 'blist' not in dict:
+                    dict['blist'] = []
+                if self.cursorY == 0:
+                    #add
+                    dict['blist'].extend(idlist)
+                elif self.cursorY == 1:
+                    #remove
+                    for id in idlist:
+                        try:
+                            dict['blist'].remove(id)
+                        except:
+                            pass
+                self.dbcursor.execute('update bindings set other = ? where id = ?',
+                        (json.dumps(dict), self.tuser[0]))
+        del self.curpage
+        self.curpage = None
+        self.show()
+        utils.moveCursorTo(self.terminal, self.cursor, self.cursorX, self.cursorY)
+
+    def keystrokeReceived(self, keyID, modifier):
+        '''处理键盘事件'''
+        if self.curpage:
+            self.curpage.keystrokeReceived(keyID, modifier)
+            return
+
+        if keyID == self.terminal.UP_ARROW or keyID == '\x1b[OA' or keyID == 'k':
+            if self.terminal.cursorPos.y > 0:
+                utils.cursorUp(self.terminal, self.cursor)
+        elif keyID == self.terminal.DOWN_ARROW or keyID == '\x1b[OB' or keyID == 'j':
+            if self.terminal.cursorPos.y < 2:
+                utils.cursorDown(self.terminal, self.cursor)
+        elif keyID == self.terminal.LEFT_ARROW or keyID == '\x1b[OD' or keyID == 'e' or keyID == 'q':
+            self.pcallback()
+        elif keyID == self.terminal.RIGHT_ARROW or keyID == '\x1b[OC' or keyID == '\r':
+            i = self.terminal.cursorPos.y
+            if i == 0 or i == 1:
+                self.cursorX = self.terminal.cursorPos.x
+                self.cursorY = self.terminal.cursorPos.y
+                self.curpage = inputPage(self.terminal, self.callback)
+            elif i == 2:
+                self.cursorX = self.terminal.cursorPos.x
+                self.cursorY = self.terminal.cursorPos.y
+                self.dbcursor.execute('select other from bindings where id=?',
+                        (self.tuser[0],))
+                res = self.dbcursor.fetchone()
+                if res and res[0]:
+                    dict = json.loads(res[0])
+                else:
+                    dict = {}
+                if 'blist' not in dict:
+                    dict['blist'] = []
+                idlist = dict['blist']
+                namelist = []
+                for id in idlist:
+                    self.dbcursor.execute('select screenname from twitterusers where id=?',
+                            (id,))
+                    row = self.dbcursor.fetchone()
+                    if row and row[0]:
+                        namelist.append(row[0].encode('utf-8'))
+                self.curpage = nameListPage(self.terminal, namelist, self.callback)
 
 #========================================================
 class tweetListPage:
@@ -913,10 +1039,6 @@ class postPage:
             else:
                 self.buffer.append('\n')
                 self.terminal.write('\r\n')
-                #self.cursorX = self.terminal.cursorPos.x
-                #self.cursorY = self.terminal.cursorPos.y
-                #self.show()
-                #utils.setCursorPosition(self.terminal, self.cursorX, self.cursorY)
         elif str(keyID) in string.printable:
             self.buffer.append(keyID)
             self.show()
@@ -924,16 +1046,8 @@ class postPage:
             if self.buffer:
                 if str(self.buffer[-1]) in string.printable:
                     del self.buffer[-1]
-                    self.terminal.cursorBackward()
-                    self.terminal.write(' ')
-                    self.terminal.cursorBackward()
                 else:
                     self.buffer = self.buffer[:-3]
-                    self.terminal.cursorBackward()
-                    self.terminal.cursorBackward()
-                    self.terminal.write('  ')
-                    self.terminal.cursorBackward()
-                    self.terminal.cursorBackward()
             self.show()
         elif keyID == '\x1b' and modifier == self.terminal.ALT:
             self.pcallback()
@@ -946,7 +1060,74 @@ class postPage:
                 self.count = 0
                 self.show()
 
+#========================================================
+class inputPage:
+    '''input page'''
+    def __init__(self, terminal, pcallback):
+        self.terminal = terminal
+        self.pcallback = pcallback
 
+        self.buffer = []
+
+        self.show()
+
+    def show(self):
+        '''show the tweet'''
+
+        head = '\x1b[1;33;44m{0} {1:>50}\x1b[0m\r\n'.format(\
+                'Separate names with SPACEs',
+                'Post: press Enter twice | Cancel: press Esc twice')
+
+        self.terminal.eraseDisplay()
+        self.terminal.cursorHome()
+        self.terminal.write(head)
+        self.terminal.write(''.join(self.buffer))
+
+    def callback(self, *args):
+        '''called by sub-pages'''
+
+    def keystrokeReceived(self, keyID, modifier):
+        '''处理键盘事件'''
+
+        if keyID == '\r':
+            if self.buffer and self.buffer[-1] == '\n':
+                st = ''.join(self.buffer).strip()
+                self.pcallback(st)
+            else:
+                self.buffer.append('\n')
+                self.terminal.write('\r\n')
+        elif str(keyID) in string.printable:
+            self.buffer.append(keyID)
+            self.show()
+        elif keyID == self.terminal.BACKSPACE:
+            if self.buffer:
+                if str(self.buffer[-1]) in string.printable:
+                    del self.buffer[-1]
+            self.show()
+        elif keyID == '\x1b' and modifier == self.terminal.ALT:
+            self.pcallback()
+        elif keyID in insults.FUNCTION_KEYS:
+            pass
+
+#========================================================
+class nameListPage:
+    '''name list page'''
+    def __init__(self, terminal, namelist, pcallback):
+        self.terminal = terminal
+        self.namelist = namelist
+        self.pcallback = pcallback
+        self.show()
+
+    def show(self):
+        content = ' '.join(self.namelist)
+
+        self.terminal.eraseDisplay()
+        self.terminal.cursorHome()
+        self.terminal.write(content)
+
+    def keystrokeReceived(self, keyID, modifier):
+        '''处理键盘事件'''
+        self.pcallback()
 #========================================================
 class profilePage:
     '''profile page'''
