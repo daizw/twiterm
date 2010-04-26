@@ -160,6 +160,23 @@ def saveTwitterUser(dbcursor, user):
         except:
             traceback.print_exc(file=sys.stdout)
 
+def getSinceId(tablename, tag):
+    sinceid = -1
+    try:
+        conn = sqlite.connect('data.db',10)
+        dbcursor = conn.cursor()
+        dbcursor.execute("select id, tag from %s order by id desc" % tablename)
+        for row in dbcursor: 
+            if (row[1] & tag):
+                sinceid = row[0]
+                break
+    except:
+        traceback.print_exc(file=sys.stdout)
+    finally:
+        if conn:
+            conn.close()
+    return sinceid
+
 def updateHomeTimeline(uid, api):
     '''update home_timeline, and write it into DB'''
     # read DB, find the since_id, make it 0 if DB is empty
@@ -167,28 +184,16 @@ def updateHomeTimeline(uid, api):
     # process the result
     # write it into DB
     #TODO select max(id) from...
-    conn = sqlite.connect('data.db',10)
-    dbcursor = conn.cursor()
-    dbcursor.execute("select id, tag from %s order by id desc" % ('x%d'%uid))
-    resp = '{}'
-    try:
-        while True:
-            id = dbcursor.fetchone()
-            #print 'since_id candidate:', id
-            if id:
-                if (id[1] & TagHome):
-                    resp = api.home_timeline(since_id = id[0], count=200)
-                    break
-                else:
-                    continue
-            else:
-                #取最近的200个
-                resp = api.home_timeline(count = 200)
-                break
-    except:
-        traceback.print_exc(file=sys.stdout)
+    tablename = 'x%d' % uid
+    sinceid = getSinceId(tablename, TagHome)
+    if sinceid < 0:
+        resp = api.home_timeline(count = 200)
+    else:
+        resp = api.home_timeline(since_id = sinceid, count=200)
     timeline = json.loads(resp)
     print '\x1b[31m!!!=== length of home timeline: %d\x1b[0m' % len(timeline) 
+    conn = sqlite.connect('data.db',10)
+    dbcursor = conn.cursor()
     for s in timeline:
         try:
             saveTwitterUser(dbcursor, s['user'])
@@ -196,14 +201,14 @@ def updateHomeTimeline(uid, api):
             if(s['favorited']):
                 tag = tag | TagFavorited
             # 如果tweet原来存在于表中, 取tag按位或, 并且应该使用update, 而不是insert
-            dbcursor.execute('select tag from %s where id = ?' % ('x%d'%uid),
+            dbcursor.execute('select tag from %s where id = ?' % tablename,
                     (s['id'],))
             oldtag = dbcursor.fetchone()
             if oldtag:
-                dbcursor.execute('update %s set tag = ? where id = ?' % ('x%d'%uid),
+                dbcursor.execute('update %s set tag = ? where id = ?' % tablename,
                         (oldtag[0] | tag, s['id']))
             else:
-                dbcursor.execute('insert into %s values(?,?,?,?,?,?,?,?)' % ('x%d'%uid),
+                dbcursor.execute('insert into %s values(?,?,?,?,?,?,?,?)' % tablename,
                         (s['id'],
                             tag,
                             s['user']['id'],
@@ -219,28 +224,16 @@ def updateHomeTimeline(uid, api):
 
 def updateMentions(uid, api):
     '''update mentions, and write them into DB'''
+    tablename = 'x%d' % uid
+    sinceid = getSinceId(tablename, TagMentions)
+    if sinceid < 0:
+        resp = api.mentions(count = 200)
+    else:
+        resp = api.mentions(since_id = sinceid, count=200)
+    timeline = json.loads(resp)
+    print '\x1b[31m!!!=== length of mentions timeline: %d\x1b[0m' % len(timeline) 
     conn = sqlite.connect('data.db',10)
     dbcursor = conn.cursor()
-    dbcursor.execute("select id, tag from %s order by id desc" % ('x%d'%uid))
-    resp = '{}'
-    try:
-        while True:
-            id = dbcursor.fetchone()
-            #print 'since_id candidate:', id
-            if id:
-                if (id[1] & TagMentions):
-                    resp = api.mentions(since_id = id[0], count=200)
-                    break
-                else:
-                    continue
-            else:
-                #取最近的200个
-                resp = api.mentions(count = 200)
-                break
-    except:
-        traceback.print_exc(file=sys.stdout)
-    timeline = json.loads(resp)
-    print '\x1b[31m!!!=== length of mentions: %d\x1b[0m' % len(timeline) 
     for s in timeline:
         try:
             saveTwitterUser(dbcursor, s['user'])
@@ -248,22 +241,22 @@ def updateMentions(uid, api):
             if(s['favorited']):
                 tag = tag | TagFavorited
             # 如果tweet原来存在于表中, 取tag按位或, 并且应该使用update, 而不是insert
-            dbcursor.execute('select tag from %s where id = ?' % ('x%d'%uid),
+            dbcursor.execute('select tag from %s where id = ?' % tablename,
                     (s['id'],))
             oldtag = dbcursor.fetchone()
             if oldtag:
-                dbcursor.execute('update %s set tag = ? where id = ?' % ('x%d'%uid),
+                dbcursor.execute('update %s set tag = ? where id = ?' % tablename,
                         (oldtag[0] | tag, s['id']))
             else:
-                dbcursor.execute('insert into %s values(?,?,?,?,?,?,?,?)' % ('x%d'%uid),
+                dbcursor.execute('insert into %s values(?,?,?,?,?,?,?,?)' % tablename,
                         (s['id'],
-                        tag,
-                        s['user']['id'],
-                        s['created_at'],
-                        parseSource(s['source']),
-                        s['text'],
-                        s['in_reply_to_status_id'],
-                        None))
+                            tag,
+                            s['user']['id'],
+                            s['created_at'],
+                            parseSource(s['source']),
+                            s['text'],
+                            s['in_reply_to_status_id'],
+                            None))
         except:
             traceback.print_exc(file=sys.stdout)
     conn.commit()
@@ -276,17 +269,14 @@ def updateDirectMessages(uid, api):
     dbcursor.execute("select id from %s where toid=? order by id desc" % ('d%d'%uid),
             (uid,))
     id = dbcursor.fetchone()
-    #print 'since_id candidate:', id
-    resp = '{}'
-    try:
-        if id:
-            resp = api.direct_messages(since_id = id[0], count=200)
-        else:
-            #取最近的200个
-            resp = api.direct_messages(count = 200)
-    except:
-        traceback.print_exc(file=sys.stdout)
+    conn.close()
+    if id:
+        resp = api.direct_messages(since_id = id[0], count=200)
+    else:
+        resp = api.direct_messages(count = 200)
     timeline = json.loads(resp)
+    conn = sqlite.connect('data.db',10)
+    dbcursor = conn.cursor()
     for s in timeline:
         try:
             saveTwitterUser(dbcursor, s['sender'])
@@ -310,17 +300,14 @@ def updateSentDirectMessages(uid, api):
     dbcursor.execute("select id from %s where fromid=? order by id desc" % ('d%d'%uid),
             (uid,))
     id = dbcursor.fetchone()
-    #print 'since_id candidate:', id
-    resp = '{}'
-    try:
-        if id:
-            resp = api.sent_direct_messages(since_id = id[0], count=200)
-        else:
-            #取最近的200个
-            resp = api.sent_direct_messages(count = 200)
-    except:
-        traceback.print_exc(file=sys.stdout)
+    conn.close()
+    if id:
+        resp = api.sent_direct_messages(since_id = id[0], count=200)
+    else:
+        resp = api.sent_direct_messages(count = 200)
     timeline = json.loads(resp)
+    conn = sqlite.connect('data.db',10)
+    dbcursor = conn.cursor()
     for s in timeline:
         try:
             saveTwitterUser(dbcursor, s['sender'])
@@ -336,3 +323,4 @@ def updateSentDirectMessages(uid, api):
             traceback.print_exc(file=sys.stdout)
     conn.commit()
     conn.close()
+
