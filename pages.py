@@ -635,7 +635,7 @@ class tweetListPage:
             index = 8
         content = '\r\n'.join([' {0:<2}{1}{2:<15} {3}\x1b[0m'.format(\
                 (tweet[1]&utils.TagFavorited) and '\x1b[1;33m★\x1b[0m' or '  ',
-                (tweet[1]&utils.TagRead) and '\x1b[0m' or '\x1b[1;33m',
+                (tweet[1]&utils.TagRead) and '\x1b[0m' or '\x1b[32m',
                 tweet[index].encode('utf-8'),
                 utils.split(tweet[5], 61).encode('utf-8')) for tweet in self.templist])
         return content
@@ -815,18 +815,18 @@ class tweetPage:
         t = tweet[3].encode('utf-8')
         t = time.strptime(t, "%a %b %d %H:%M:%S +0000 %Y")
         t = time.strftime("%Y.%m.%d %H:%M:%S", time.localtime(calendar.timegm(t)))
-        head = '\x1b[1;33m{0:<6}: {1}({2})\r\n'.format('作者', tweet[10].encode('utf-8'),\
+        head = '\x1b[0m{0:<6}: {1}({2})\r\n'.format('作者', tweet[10].encode('utf-8'),\
                 tweet[9].encode('utf-8'))\
-                + '\x1b[1;33m{0:<6}: {1}\r\n'.format('时间', t)\
-                + '\x1b[1;33m{0:<6}: {1}\r\n'.format('来源', tweet[4].encode('utf-8'))
+                + '\x1b[0m{0:<6}: {1}\r\n'.format('时间', t)\
+                + '\x1b[0m{0:<6}: {1}\r\n'.format('来源', tweet[4].encode('utf-8'))
 
-        content = '\x1b[1;37m\r\n{0}\r\n'.format(tweet[5].encode('utf-8'))
+        content = '\x1b[0m\r\n{0}\r\n'.format(tweet[5].encode('utf-8'))
 
         if tweet[6]:
             found = False
             for t in self.tweets:
                 if tweet[6] == t[0]:
-                    content += '\x1b[1;34m\r\n【@%s 说:】\r\n\x1b[1;32m%s\r\n' % (\
+                    content += '\x1b[1;34m\r\n【@%s 说:】\r\n\x1b[0;35m%s\r\n' % (\
                             t[10].encode('utf-8'), t[5].encode('utf-8'))
                     found = True
                     break
@@ -834,11 +834,11 @@ class tweetPage:
                 #TODO 可以根据消息文本开始处的用户名自己生成一个链接:
                 #http://twitter.com/daizw/status/9633364542
                 #TODO 这里有些问题，有些tweet的开头并不是用户名
-                content += '\x1b[1;34m\r\n【In Reply To】\r\n\x1b[1;32m http://twitter.com/%s/status/%d\r\n' % (\
+                content += '\x1b[1;34m\r\n【In Reply To】\r\n\x1b[0;35m http://twitter.com/%s/status/%d\r\n' % (\
                         tweet[5].split()[0][1:].encode('utf-8'),
                         tweet[6])
         
-        foot = '\x1b[1;33m\r\n------\r\n ◆ {0:<6}: {1:<70}\x1b[0m'.format('位置',\
+        foot = '\x1b[0;36m\r\n------\r\n ◆ {0:<6}: {1:<70}\x1b[0m'.format('位置',\
                 'Tw!term(http://code.google.com/p/twiterm/)')
 
         self.terminal.eraseDisplay()
