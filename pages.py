@@ -845,6 +845,10 @@ class tweetPage:
         self.terminal.cursorHome()
         self.terminal.write(head + content + foot)
 
+    def cmd_retweet(self):
+        tweet = self.tweets[self.tweetcursor]
+        self.api.retweet(id = str(tweet[0]))
+
     def callback(self, *args):
         '''called by sub-pages'''
         del self.curpage
@@ -886,8 +890,9 @@ class tweetPage:
             tweet = self.tweets[self.tweetcursor]
             self.curpage = postPage(self.api, self.terminal, self.callback, tweet, type=3)
         elif keyID == 't':
-            tweet = self.tweets[self.tweetcursor]
-            self.api.retweet(id = str(tweet[0]))
+            self.cursorX = self.terminal.cursorPos.x
+            self.cursorY = self.terminal.cursorPos.y
+            self.curpage = dialogPage(self.terminal, 'ReTweet this status?', self.cmd_retweet, self.callback)
         #TODO r:回复 m:dm作者 t:官方ReTweet f:favorite c:附评论RT
 
 #========================================================
@@ -1131,6 +1136,7 @@ class nameListPage:
     def keystrokeReceived(self, keyID, modifier):
         '''处理键盘事件'''
         self.pcallback()
+
 #========================================================
 class profilePage:
     '''profile page'''
@@ -1170,6 +1176,44 @@ class profilePage:
         if self.curpage:
             self.curpage.keystrokeReceived(keyID, modifier)
             return
+
+        self.pcallback()
+
+#========================================================
+class dialogPage:
+    '''dialog page, let user confirm his request'''
+    def __init__(self, terminal, message, cmd, pcallback):
+        self.terminal = terminal
+        self.message = message
+        self.cmd = cmd
+        self.pcallback = pcallback
+        self.curpage = None
+
+        self.show()
+
+    def show(self):
+        '''show the message'''
+        content = '\x1b[1;37m{0}(y/n)\x1b[0m'.format(self.message)
+
+        self.terminal.eraseDisplay()
+        self.terminal.cursorHome()
+        self.terminal.write(content)
+
+    def callback(self, *args):
+        '''called by sub-pages'''
+        del self.curpage
+        self.curpage = None
+        self.show()
+
+    def keystrokeReceived(self, keyID, modifier):
+        '''处理键盘事件'''
+        if self.curpage:
+            self.curpage.keystrokeReceived(keyID, modifier)
+            return
+
+        if keyID == 'y' or keyID == 'Y':
+            self.terminal.write('\r\nWait...')
+            self.cmd()
 
         self.pcallback()
 
