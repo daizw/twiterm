@@ -885,6 +885,9 @@ class tweetPage:
             self.cursorY = self.terminal.cursorPos.y
             tweet = self.tweets[self.tweetcursor]
             self.curpage = postPage(self.api, self.terminal, self.callback, tweet, type=3)
+        elif keyID == 't':
+            tweet = self.tweets[self.tweetcursor]
+            self.api.retweet(id = str(tweet[0]))
         #TODO r:回复 m:dm作者 t:官方ReTweet f:favorite c:附评论RT
 
 #========================================================
