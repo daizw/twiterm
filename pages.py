@@ -826,7 +826,7 @@ class tweetPage:
             found = False
             for t in self.tweets:
                 if tweet[6] == t[0]:
-                    content += '\x1b[1;34m\r\n【@%s 说:】\r\n\x1b[0;35m%s\r\n' % (\
+                    content += '\x1b[1;34m\r\n【@%s 说:】\r\n\x1b[0;32m%s\r\n' % (\
                             t[10].encode('utf-8'), t[5].encode('utf-8'))
                     found = True
                     break
@@ -834,7 +834,7 @@ class tweetPage:
                 #TODO 可以根据消息文本开始处的用户名自己生成一个链接:
                 #http://twitter.com/daizw/status/9633364542
                 #TODO 这里有些问题，有些tweet的开头并不是用户名
-                content += '\x1b[1;34m\r\n【In Reply To】\r\n\x1b[0;35m http://twitter.com/%s/status/%d\r\n' % (\
+                content += '\x1b[1;34m\r\n【In Reply To】\r\n\x1b[0;32m http://twitter.com/%s/status/%d\r\n' % (\
                         tweet[5].split()[0][1:].encode('utf-8'),
                         tweet[6])
         
