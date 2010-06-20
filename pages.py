@@ -990,42 +990,54 @@ class postPage:
 
         self.cursorX, self.cursorY = 0, 0
 
-        self.buffer = []
+        self.bufstr = [] #unicode
+        self.bufcursor = 0
         self.limit = 140
 
         #width of wide char
         self.width = 3
-        self.count = 0
+        self.buffer = [] #utf-8
 
-        ts = ''
+        ts = u''
         if self.type == 1:
-            ts = '@%s ' % tweet[10].encode('utf-8')
+            ts = u'@%s ' % tweet[10]
+            self.bufcursor = len(ts)
         elif self.type == 2:
-            ts = 'RT @%s: %s' % (tweet[10].encode('utf-8'), tweet[5].encode('utf-8'))
+            ts = u'RT @%s: %s' % (tweet[10], tweet[5])
         elif self.type == 3:
-            if len(tweet) == 16:#tweet
-                ts = 'dm %s ' % tweet[10].encode('utf-8')
-            elif len(tweet) == 22:#direct message
-                ts = 'dm %s ' % tweet[8].encode('utf-8')
+            if len(tweet) == 16: #tweet
+                ts = u'dm %s ' % tweet[10]
+            elif len(tweet) == 22: #direct message
+                ts = u'dm %s ' % tweet[8]
             else:
                 print len(tweet), repr(tweet)
                 raise Exception('Funny tweet tuple')
+            self.bufcursor = len(ts)
+
         for c in ts:
-            self.buffer.append(c)
+            self.bufstr.append(c)
+
         self.show()
 
     def show(self):
         '''show the tweet'''
 
         head = '\x1b[1;33;44m{0:>3}/{1} {2:>72}\x1b[0m\r\n'.format(\
-                self.limit - len(''.join(self.buffer).decode('utf-8')),
+                self.limit - len(self.bufstr),
                 self.limit,
                 'Post: press Enter twice | Cancel: press Esc twice')
 
         self.terminal.eraseDisplay()
         self.terminal.cursorHome()
         self.terminal.write(head)
-        self.terminal.write(''.join(self.buffer))
+        self.terminal.write(''.join(self.bufstr).encode('utf-8'))
+        self.terminal.cursorHome()
+        self.terminal.write(head)
+        self.terminal.write(''.join(self.bufstr[:self.bufcursor]).encode('utf-8'))
+
+    def list_remove(self, li, index):
+        '''remove the index-th element of li, and return it'''
+        return li[:index] + li[index+1:]
 
     def callback(self, *args):
         '''called by sub-pages'''
@@ -1033,10 +1045,28 @@ class postPage:
     def keystrokeReceived(self, keyID, modifier):
         '''处理键盘事件'''
 
-        if keyID == '\r':
-            if self.buffer and self.buffer[-1] == '\n':
+        if keyID == self.terminal.UP_ARROW or keyID == '\x1b[OA':
+            pass
+        elif keyID == self.terminal.DOWN_ARROW or keyID == '\x1b[OB':
+            pass
+        elif keyID == self.terminal.LEFT_ARROW or keyID == '\x1b[OD':
+            self.bufcursor -= 1;
+            if self.bufcursor < 0: self.bufcursor = 0
+            self.show()
+        elif keyID == self.terminal.RIGHT_ARROW or keyID == '\x1b[OC':
+            self.bufcursor += 1;
+            if self.bufcursor > len(self.bufstr): self.bufcursor = len(self.bufstr)
+            self.show()
+        elif keyID == self.terminal.HOME or keyID == '\x1b[7~':
+            self.bufcursor = 0;
+            self.show()
+        elif keyID == self.terminal.END or keyID == '\x1b[8~':
+            self.bufcursor = len(self.bufstr);
+            self.show()
+        elif keyID == '\r':
+            if self.bufstr and self.bufcursor == len(self.bufstr) and self.bufstr[-1] == u'\n':
                 self.terminal.write(' posting...')
-                st = ''.join(self.buffer).strip()
+                st = ''.join(self.bufstr).strip()
                 if st:
                     if self.type == 1:
                         self.api.update_status(status = st,
@@ -1045,28 +1075,36 @@ class postPage:
                         self.api.update_status(st)
                 self.pcallback()
             else:
-                self.buffer.append('\n')
-                self.terminal.write('\r\n')
+                self.bufstr.insert(self.bufcursor, u'\n')
+                self.bufcursor += 1
+                self.show()
         elif str(keyID) in string.printable:
-            self.buffer.append(keyID)
+            self.bufstr.insert(self.bufcursor, keyID)
+            self.bufcursor += 1
             self.show()
         elif keyID == self.terminal.BACKSPACE:
-            if self.buffer:
-                if str(self.buffer[-1]) in string.printable:
-                    del self.buffer[-1]
-                else:
-                    self.buffer = self.buffer[:-3]
-            self.show()
+            if self.bufstr and self.bufcursor-1 >= 0:
+                self.bufcursor -= 1
+                self.bufstr = self.list_remove(self.bufstr, self.bufcursor)
+                self.show()
+        elif keyID == self.terminal.DELETE:
+            if self.bufstr and self.bufcursor < len(self.bufstr):
+                self.bufstr = self.list_remove(self.bufstr, self.bufcursor)
+                self.show()
         elif keyID == '\x1b' and modifier == self.terminal.ALT:
             self.pcallback()
         elif keyID in insults.FUNCTION_KEYS:
             pass
         else:
             self.buffer.append(keyID)
-            self.count += 1
-            if self.count == 3:
-                self.count = 0
-                self.show()
+            if len(self.buffer) == 3:
+                try:
+                    self.bufstr.insert(self.bufcursor, ''.join(self.buffer).decode('utf-8'))
+                    self.bufcursor += 1
+                    self.buffer = []
+                    self.show()
+                except:
+                    self.buffer = []
 
 #========================================================
 class inputPage:
