@@ -7,9 +7,9 @@
 import sys, traceback
 import sqlite3 as sqlite
 import re
+import json
 
 import tweepy
-import simplejson as json
 
 import consts
 

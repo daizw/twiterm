@@ -7,11 +7,10 @@
 import sys, traceback
 import string
 import time, calendar
+import json
 
 from twisted.conch.insults import insults
-
 import tweepy
-import simplejson as json
 
 import pwdchecker
 import utils
